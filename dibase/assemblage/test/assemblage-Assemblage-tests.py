@@ -105,5 +105,20 @@ class TestAssemblageAssemblage(unittest.TestCase):
       Assemblage(b).apply("JustDoIt")    
     Assemblage(b).apply("JustDoIt")    
     self.assertEqual(b.logContents().count('\n'),4)
+
+  def test_Assemblage_can_be_nested_as_element_of_another_Assemblage_and_applied_actions_are_passed_through(self):
+    binner = Blueprint([NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction()])
+    for c in binner.topLevelComponents():
+      self.assertEqual(c.lastAction,'')
+    bouter = Blueprint(Assemblage(binner))
+    for c in binner.topLevelComponents():
+      self.assertEqual(c.lastAction,'')
+    Assemblage(bouter).apply("anAction")    
+    for c in binner.topLevelComponents():
+      self.assertEqual(c.lastAction,'anAction')
+    Assemblage(bouter).apply("anotherAction")    
+    for c in binner.topLevelComponents():
+      self.assertEqual(c.lastAction,"anotherAction")
+
 if __name__ == '__main__':
   unittest.main()
