@@ -105,7 +105,6 @@ class TestAssemblageAssemblage(unittest.TestCase):
       Assemblage(b).apply("JustDoIt")    
     Assemblage(b).apply("JustDoIt")    
     self.assertEqual(b.logContents().count('\n'),4)
-
   def test_Assemblage_can_be_nested_as_element_of_another_Assemblage_and_applied_actions_are_passed_through(self):
     binner = Blueprint([NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction()])
     for c in binner.topLevelComponents():
