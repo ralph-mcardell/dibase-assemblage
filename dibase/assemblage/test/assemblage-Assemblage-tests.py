@@ -46,7 +46,7 @@ class Blueprint: # 'mock' Blueprint type
     return self._log
   def logContents(self):
     return self.stringstream.getvalue()
-  def topLevelComponents(self):
+  def topLevelElements(self):
     return self.components
 
 class TestAssemblageAssemblage(unittest.TestCase):
@@ -65,31 +65,31 @@ class TestAssemblageAssemblage(unittest.TestCase):
     self.assertFalse(b.logContents())
   def test_apply_action_to_Assemblage_from_non_empty_blueprint_calls_apply_on_all_top_level_components(self):
     b = Blueprint([NoteApplyCalls(), NoteApplyCalls(), NoteApplyCalls(), NoteApplyCalls()])
-    for c in b.topLevelComponents():
+    for c in b.topLevelElements():
       self.assertEqual(c.applyCount,0)
     Assemblage(b).apply("anAction")    
-    for c in b.topLevelComponents():
+    for c in b.topLevelElements():
       self.assertEqual(c.applyCount,1)
     Assemblage(b).apply("anAction")    
-    for c in b.topLevelComponents():
+    for c in b.topLevelElements():
       self.assertEqual(c.applyCount,2)
   def test_apply_action_to_Assemblage_from_non_empty_blueprint_applies_action_to_all_top_level_components(self):
     b = Blueprint([NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction()])
-    for c in b.topLevelComponents():
+    for c in b.topLevelElements():
       self.assertEqual(c.lastAction,'')
     Assemblage(b).apply("anAction")    
-    for c in b.topLevelComponents():
+    for c in b.topLevelElements():
       self.assertEqual(c.lastAction,'anAction')
     Assemblage(b).apply("anotherAction")    
-    for c in b.topLevelComponents():
+    for c in b.topLevelElements():
       self.assertEqual(c.lastAction,"anotherAction")
   def test_apply_action_to_Assemblage_from_non_empty_blueprint_applies_action_to_single_top_level_component(self):
     b = Blueprint(NoteLastAppliedAction())   
-    self.assertEqual(b.topLevelComponents().lastAction,'')
+    self.assertEqual(b.topLevelElements().lastAction,'')
     Assemblage(b).apply("Action_a")    
-    self.assertEqual(b.topLevelComponents().lastAction,'Action_a')
+    self.assertEqual(b.topLevelElements().lastAction,'Action_a')
     Assemblage(b).apply("JustDoIt")    
-    self.assertEqual(b.topLevelComponents().lastAction,"JustDoIt")
+    self.assertEqual(b.topLevelElements().lastAction,"JustDoIt")
   def test_apply_action_to_Assemblage_from_blueprint_with_single_top_level_component_lacking_apply_method_logs_warning(self):
     b = Blueprint(NotApplicable())   
     with self.assertLogs(b.logger(), logging.WARNING):
@@ -107,16 +107,16 @@ class TestAssemblageAssemblage(unittest.TestCase):
     self.assertEqual(b.logContents().count('\n'),4)
   def test_Assemblage_can_be_nested_as_element_of_another_Assemblage_and_applied_actions_are_passed_through(self):
     binner = Blueprint([NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction()])
-    for c in binner.topLevelComponents():
+    for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,'')
     bouter = Blueprint(Assemblage(binner))
-    for c in binner.topLevelComponents():
+    for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,'')
     Assemblage(bouter).apply("anAction")    
-    for c in binner.topLevelComponents():
+    for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,'anAction')
     Assemblage(bouter).apply("anotherAction")    
-    for c in binner.topLevelComponents():
+    for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,"anotherAction")
 
 if __name__ == '__main__':

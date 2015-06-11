@@ -49,15 +49,15 @@ class Assemblage:
     The plan parameter is assumed to provide:
       - a logger instance method callable as plan.logger() 
         and returning a Python logging.logger object (or equivalent).
-      - a topLevelComponents instance method callable as
-        plan.topLevelComponents() and returning either a single element object
+      - a topLevelElements instance method callable as
+        plan.topLevelElements() and returning either a single element object
         or an iterable sequence of element objects. Element objects should
         provide an apply method and accept an action object - a string -
         as provided by assemblage.Component and derivatives.
     The plan parameter's requirements are met by assemblage.Blueprint objects.
     '''
     self._log = plan.logger()
-    self.elements = plan.topLevelComponents()
+    self.elements = plan.topLevelElements()
 
   def apply(self, action):
     '''
