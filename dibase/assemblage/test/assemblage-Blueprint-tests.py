@@ -185,8 +185,118 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_same_init_parameters_passed_if_present(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, custom_arg='custom', another_arg='arg2')
+    self.assertEqual(len(b.topLevelElements()),3)
+    for e in b.topLevelElements():
+      self.assertIn('custom_arg', e.args)
+      self.assertIn('another_arg', e.args)
+      self.assertEqual(e.args['custom_arg'], 'custom')
+      self.assertEqual(e.args['another_arg'], 'arg2')
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_init_parameters_passed_as_lists(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, custom_arg=['custom1','custom2','custom3']
+                  , another_arg=['arg2-1','arg2-2','arg2-3'])
+    self.assertEqual(len(b.topLevelElements()),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertIn('custom_arg', e.args)
+      self.assertIn('another_arg', e.args)
+      self.assertEqual(e.args['custom_arg'], 'custom%(n)d' % {'n':n})
+      self.assertEqual(e.args['another_arg'], 'arg2-%(n)d' % {'n':n})
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_init_parameters_passed_as_dicts(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent
+                  , custom_arg={'testelement2':'custom2','testelement3':'custom3','testelement1':'custom1'}
+                  , another_arg={'testelement3':'arg2-3','testelement1':'arg2-1','testelement2':'arg2-2'}
+                 )
+    self.assertEqual(len(b.topLevelElements()),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertIn('custom_arg', e.args)
+      self.assertIn('another_arg', e.args)
+      self.assertEqual(e.args['custom_arg'], 'custom%(n)d' % {'n':n})
+      self.assertEqual(e.args['another_arg'], 'arg2-%(n)d' % {'n':n})
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_same_single_subelement(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, elements='common_subelement')
+    b.addElements('common_subelement',TestComponent)
+    self.assertEqual(len(b.topLevelElements()),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertIsInstance(e, TestComponent)
+      self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
+      self.assertIs(e.logger, b.logger())
+      self.assertTrue(e.elements)
+      self.assertEqual(len(e.elements),1)
+      for sub in e.elements:
+        self.assertIsInstance(sub, TestComponent)
+        self.assertEqual(sub.name, 'common_subelement')
+        self.assertIs(sub.logger, b.logger())
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_same_multiple_subelements(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, elements=['common_se-1','common_se-2','common_se-3'])
+    b.addElements('common_se-1',TestComponent)
+    b.addElements('common_se-2',TestComponent)
+    b.addElements('common_se-3',TestComponent)
+    self.assertEqual(len(b.topLevelElements()),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertIsInstance(e, TestComponent)
+      self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
+      self.assertIs(e.logger, b.logger())
+      self.assertTrue(e.elements)
+      self.assertEqual(len(e.elements),3)
+      m = 0
+      for sub in sorted(e.elements):
+        m = m + 1
+        self.assertIsInstance(sub, TestComponent)
+        self.assertEqual(sub.name, 'common_se-%(m)d' % {'m':m})
+        self.assertIs(sub.logger, b.logger())
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_subelement_passed_as_lists(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent
+                  , elements=[[],['custom21'],['custom31','custom32']]
+                 )
+    b.addElements('custom21',TestComponent)
+    b.addElements('custom31',TestComponent)
+    b.addElements('custom32',TestComponent)
+    self.assertEqual(len(b.topLevelElements()),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertEqual(len(e.elements),n-1)
+      m = 0
+      for sub in sorted(e.elements):
+        m = m + 1
+        self.assertIsInstance(sub, TestComponent)
+        self.assertEqual(sub.name, 'custom%(n)d%(m)d' % {'n':n,'m':m})
+        self.assertIs(sub.logger, b.logger())
 
-    
+  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_subelement_passed_as_dicts(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent
+                  , elements={'testelement2':['custom21'],'testelement3':['custom31','custom32'],'testelement1':[]}
+                 )
+    b.addElements('custom21',TestComponent)
+    b.addElements('custom31',TestComponent)
+    b.addElements('custom32',TestComponent)
+    self.assertEqual(len(b.topLevelElements()),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertEqual(len(e.elements),n-1)
+      m = 0
+      for sub in sorted(e.elements):
+        m = m + 1
+        self.assertIsInstance(sub, TestComponent)
+        self.assertEqual(sub.name, 'custom%(n)d%(m)d' % {'n':n,'m':m})
+        self.assertIs(sub.logger, b.logger())
 
 #    .withLogger()
 #      .addHandler()
