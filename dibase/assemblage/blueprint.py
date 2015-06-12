@@ -30,8 +30,8 @@ class Blueprint:
  
   def __init__(self):
     self.__log = None
-    self.element_specs = {}
-    self.non_root_elements = set()
+    self.__element_specs_by_group = {}
+    self.__non_root_elements = set()
 
   def __set_default_logger(self):
     loghdr = logging.StreamHandler()
@@ -66,7 +66,7 @@ class Blueprint:
 
   def topLevelElements(self):
     specs = {}
-    for esl in self.element_specs.values():
+    for esl in self.__element_specs_by_group.values():
       for es in esl:      
         if not es.logger:
           es.logger = self.logger()
@@ -77,20 +77,20 @@ class Blueprint:
         self.__add_element_from_specification(es, specs, elements)
     tlelements = []
     for ename, element in elements.items():
-      if ename not in self.non_root_elements:
+      if ename not in self.__non_root_elements:
         tlelements.append(element)
     return tlelements
 
   def addElements(self, names, kind, group='', elements=[], logger=None, **kwargs):
-    if group not in self.element_specs:
-      self.element_specs[group] = []
+    if group not in self.__element_specs_by_group:
+      self.__element_specs_by_group[group] = []
     if type(elements) is str:
       elements = [elements]
-    for grp in self.element_specs.keys():
-      for es in self.element_specs[grp]:
+    for grp in self.__element_specs_by_group.keys():
+      for es in self.__element_specs_by_group[grp]:
         if names==es.name:
           raise RuntimeError("Duplicate element: there is already an element called '%(n)s'." % {'n':es.name})
-    self.element_specs[group].append(Blueprint.__ElementSpec(names, kind, elements, logger, **kwargs))
+    self.__element_specs_by_group[group].append(Blueprint.__ElementSpec(names, kind, elements, logger, **kwargs))
     for e in elements:
-      if e not in self.non_root_elements:
-        self.non_root_elements.add(e)
+      if e not in self.__non_root_elements:
+        self.__non_root_elements.add(e)
