@@ -27,7 +27,23 @@ class Blueprint:
       self.elements = elements
       self.logger = logger
       self.args = kwargs
- 
+
+  class __ElementView:
+    def __init__(self, by_group):
+      self.__elements_by_group = {}
+      for k,v in by_group.items():
+        self.__elements_by_group[k] = []
+        for es in v:
+          self.__elements_by_group[k].append(es.name)
+    def groups(self):
+      return self.__elements_by_group.keys()
+    def has_group(self, group):
+      return group in self.__elements_by_group.keys()
+    def elements(self, group):
+      return self.__elements_by_group[group] if self.has_group(group) else []
+    def has_element(self, group, element):
+      return self.has_group(group) and element in self.elements()
+
   def __init__(self):
     self.__log = None
     self.__element_specs_by_group = {}
@@ -98,11 +114,16 @@ class Blueprint:
       else:
         outargs = elements
       return [outargs] if type(outargs) is str else outargs
+    def resolve_to_list(value):
+      if type(value) is str:
+        return [value]
+      elif callable(value):
+        return value(Blueprint.__ElementView(self.__element_specs_by_group))
+      else:
+        return value
 
-    if type(names) is str:
-      names = [names]
-    if type(elements) is str:
-      elements = [elements]
+    names = resolve_to_list(names)
+    elements = resolve_to_list(elements)
     nm_index = 0
     for name in names:
       if name in self.__element_specs_by_name:
