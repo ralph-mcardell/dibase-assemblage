@@ -101,7 +101,6 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertIn('another_arg', e.args)
       self.assertEqual(e.args['custom_arg'], 'custom%(n)d' % {'n':n})
       self.assertEqual(e.args['another_arg'], 'arg2-%(n)d' % {'n':n})
-
   def test_blueprint_topLevelElements_returns_elements_with_additional_specific_initialisation_parameters_passed_if_some_added(self):
     class LocalComponent:
       def __init__(self, name, elements, logger, arg1, arg2):
@@ -122,7 +121,6 @@ class TestAssemblageBlueprint(unittest.TestCase):
       n = n + 1
       self.assertEqual(e.arg1, 'custom%(n)d' % {'n':n})
       self.assertEqual(e.arg2, 'arg2-%(n)d' % {'n':n})
-
   def test_blueprint_topLevelElements_returns_single_element_if_one_added_with_another_as_subelement_root_defined_last(self):
     b = Blueprint()
     b.addElements('rootDependsOn',TestComponent)
@@ -138,7 +136,6 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'rootDependsOn')
         self.assertIs(sub.logger, b.logger())
-
   def test_blueprint_topLevelElements_returns_single_element_if_one_added_with_another_as_subelement_root_defined_first(self):
     b = Blueprint()
     b.addElements('root',TestComponent, elements='rootDependsOn')
@@ -155,6 +152,41 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertEqual(sub.name, 'rootDependsOn')
         self.assertIs(sub.logger, b.logger())
         self.assertFalse(sub.elements)
+  def test_blueprint_adding_element_with_same_name_as_a_previously_added_element_raises_exception(self):
+    b = Blueprint()
+    b.addElements('attempted_duplicate_name',TestComponent)
+    b.addElements('some_other_name',TestComponent)
+    with self.assertRaises(RuntimeError):
+      b.addElements('attempted_duplicate_name',TestComponent)
+    try:
+      b.addElements('attempted_duplicate_name',TestComponent)
+    except RuntimeError as e:
+      print("\ntest_blueprint_adding_element_with_same_name_as_a_previously_added_element_raises_exception\n"
+            "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
+  def test_blueprint_topLevelElements_raises_exception_if_named_subelement_not_added_as_element(self):
+    b = Blueprint()
+    b.addElements('root',TestComponent, elements='root_required_element_but_not_defined')
+    with self.assertRaises(RuntimeError):
+      b.topLevelElements()
+    try:
+      b.topLevelElements()
+    except RuntimeError as e:
+      print("\ntest_blueprint_topLevelElements_raises_exception_if_named_subelement_not_added_as_element\n"
+            "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
+  def test_blueprint_topLevelElements_returns_all_elements_if_multiple_added_in_one_addelements_call(self):
+    b = Blueprint()
+    b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent)
+    tle = b.topLevelElements()
+    self.assertEqual(len(tle),3)
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      n = n + 1
+      self.assertIsInstance(e, TestComponent)
+      self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
+      self.assertFalse(e.elements)
+      self.assertIs(e.logger, b.logger())
+
+    
 
 #    .withLogger()
 #      .addHandler()

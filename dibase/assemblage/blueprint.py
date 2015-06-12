@@ -53,7 +53,7 @@ class Blueprint:
           self.__add_element_from_specification(self.__element_specs_by_name[subname], elements)
           subelements.append(elements[subname])
         else:
-          raise RuntimeError("No definition for element '%(e)s' in Blueprint." % {'e':subname})
+          raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
     elements[specification.name] = \
       (specification.kind(name=specification.name,elements=subelements,logger=specification.logger,**specification.args))
 
@@ -79,15 +79,18 @@ class Blueprint:
     return tlelements
 
   def addElements(self, names, kind, group='', elements=[], logger=None, **kwargs):
+    if type(names) is str:
+      names = [names]
     if type(elements) is str:
       elements = [elements]
-    if names in self.__element_specs_by_name:
-      raise RuntimeError("Duplicate element: there is already an element called '%(n)s'." % {'n':es.name})
-    new_spec = Blueprint.__ElementSpec(names, kind, elements, logger, **kwargs)
-    self.__element_specs_by_name[names] = new_spec
-    if group not in self.__element_specs_by_group:
-      self.__element_specs_by_group[group] = []
-    self.__element_specs_by_group[group].append(new_spec)
-    for e in elements:
-      if e not in self.__non_root_elements:
-        self.__non_root_elements.add(e)
+    for name in names:
+      if name in self.__element_specs_by_name:
+        raise RuntimeError("Duplicate element: there is already an element called '%(n)s'." % {'n':name})
+      new_spec = Blueprint.__ElementSpec(name, kind, elements, logger, **kwargs)
+      self.__element_specs_by_name[name] = new_spec
+      if group not in self.__element_specs_by_group:
+        self.__element_specs_by_group[group] = []
+      self.__element_specs_by_group[group].append(new_spec)
+      for e in elements:
+        if e not in self.__non_root_elements:
+          self.__non_root_elements.add(e)
