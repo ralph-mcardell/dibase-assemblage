@@ -6,6 +6,7 @@ Tests for dibase.assemblage.Blueprint
 import unittest
 import logging
 import io
+import re
 
 import os,sys
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -345,7 +346,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_addElements_detects_callable_for_element_subelement_and_passes_element_info_object_to_it_to_create_subelements(self):
+  def test_blueprint_addElements_detects_callable_for_element_subelements_and_passes_element_info_object_to_it_to_create_subelements(self):
     b = Blueprint()
     b.addElements( ['src1', 'src2','src3'],TestComponent,group='src')
     b.addElements( ['testelement1', 'testelement2','testelement3'],TestComponent
@@ -360,6 +361,47 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'src%(n)d' % {'n':n})
         self.assertIs(sub.logger, b.logger())
+  def test_blueprint_addElements_complex_callable_element_names_and_subelement_exercing_passed_element_data_interface(self):
+    b = Blueprint()
+    b.addElements( ['src1.cpp', 'src2.cpp','src3.cpp'],TestComponent,group='src')
+    b.addElements( ['src1.h', 'src2.h','src3.h'],TestComponent,group='src-hdrs')
+    b.addElements( ['xxx', 'yyy','zzz'],TestComponent,group='xyzzy')
+    b.addElements( ['abc', '123','stuff'],TestComponent)
+    def make_names_list(ed):
+      names = []
+      to_change = re.compile('.cpp$')
+      grp = 'cpluplus' if ed.has_group('cppluplus') else 'src'
+      idx = 1
+      for name in ed.elements(grp):
+        if ed.has_element(grp,'%(g)s%(i)d.cpp' % {'g':grp,'i':idx}):
+          names.append(to_change.sub('.o',name))
+        idx = idx + 1
+      return names
+    def make_elements_list(ed):
+      elements = []
+      to_change = re.compile('.cpp$')
+      idx = 1
+      for element in ed.elements('src'):
+        if ed.has_element('src', '%(g)s%(i)d.cpp' % {'g':'src','i':idx}):
+          elements.append([element,to_change.sub('.h',element)])
+        idx = idx + 1
+      return elements
+    b.addElements( make_names_list,TestComponent
+                 , elements=make_elements_list
+                 )
+    self.assertEqual(len(b.topLevelElements()),9) # 15 elements, 6 have parents
+    n = 0
+    for e in sorted(b.topLevelElements()):
+      if e.name[-2:] == '.o':
+        self.assertEqual(len(e.elements),2)
+        n = n + 1
+        m = 0
+        extns = ['.cpp','.h']
+        for sub in sorted(e.elements):
+          self.assertIsInstance(sub, TestComponent)
+          self.assertEqual(sub.name, 'src%(n)d%(e)s' % {'n':n,'e':extns[m]})
+          self.assertIs(sub.logger, b.logger())
+          m = m + 1
 
 #    .withLogger()
 #      .addHandler()

@@ -38,11 +38,11 @@ class Blueprint:
     def groups(self):
       return self.__elements_by_group.keys()
     def has_group(self, group):
-      return group in self.__elements_by_group.keys()
+      return group in self.groups()
     def elements(self, group):
       return self.__elements_by_group[group] if self.has_group(group) else []
     def has_element(self, group, element):
-      return self.has_group(group) and element in self.elements()
+      return self.has_group(group) and element in self.elements(group)
 
   def __init__(self):
     self.__log = None
