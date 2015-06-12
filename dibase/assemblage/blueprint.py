@@ -57,27 +57,6 @@ class Blueprint:
     elements[specification.name] = \
       (specification.kind(name=specification.name,elements=subelements,logger=specification.logger,**specification.args))
 
-  def __addElements_process_kwargs(self, name, index, kwargs):
-    outargs = {}
-    for k,v in kwargs.items():
-      if type(v) is list:
-        outargs[k] = v[index]
-      elif type(v) is dict:
-        outargs[k] = v[name]
-      else:
-        outargs[k] = v
-    return outargs
-
-  def __addElements_process_elements(self,name,index,elements):
-    outargs = []
-    if type(elements) is dict:
-      outargs = elements[name]
-    elif type(elements) is list and len(elements) and type(elements[0]) is list:
-      outargs = elements[index]
-    else:
-      outargs = elements
-    return [outargs] if type(outargs) is str else outargs
-
   def logger(self):
     if not self.__log:
       self.__set_default_logger()
@@ -100,6 +79,26 @@ class Blueprint:
     return tlelements
 
   def addElements(self, names, kind, group='', elements=[], logger=None, **kwargs):
+    def process_kwargs(name, index, kwargs):
+      outargs = {}
+      for k,v in kwargs.items():
+        if type(v) is list:
+          outargs[k] = v[index]
+        elif type(v) is dict:
+          outargs[k] = v[name]
+        else:
+          outargs[k] = v
+      return outargs
+    def process_elements(name,index,elements):
+      outargs = []
+      if type(elements) is dict:
+        outargs = elements[name]
+      elif type(elements) is list and len(elements) and type(elements[0]) is list:
+        outargs = elements[index]
+      else:
+        outargs = elements
+      return [outargs] if type(outargs) is str else outargs
+
     if type(names) is str:
       names = [names]
     if type(elements) is str:
@@ -108,8 +107,8 @@ class Blueprint:
     for name in names:
       if name in self.__element_specs_by_name:
         raise RuntimeError("Duplicate element: there is already an element called '%(n)s'." % {'n':name})
-      this_element_kwargs = self.__addElements_process_kwargs(name,nm_index,kwargs)
-      this_element_elements = self.__addElements_process_elements(name,nm_index,elements)
+      this_element_kwargs = process_kwargs(name,nm_index,kwargs)
+      this_element_elements = process_elements(name,nm_index,elements)
       new_spec = Blueprint.__ElementSpec(name, kind, this_element_elements, logger, **this_element_kwargs)
       self.__element_specs_by_name[name] = new_spec
       if group not in self.__element_specs_by_group:
