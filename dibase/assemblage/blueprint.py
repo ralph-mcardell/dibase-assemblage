@@ -31,6 +31,7 @@ class Blueprint:
   def __init__(self):
     self.__log = None
     self.__element_specs_by_group = {}
+    self.__element_specs_by_name = {}
     self.__non_root_elements = set()
 
   def __set_default_logger(self):
@@ -42,14 +43,14 @@ class Blueprint:
     self.__log.addHandler(loghdr)
     self.__log.setLevel(logging.INFO)
 
-  def __add_element_from_specification(self, specification, specs, elements):
+  def __add_element_from_specification(self, specification, elements):
     subelements = []
     for subname in specification.elements:
       if subname in elements:
         subelements.append(elements[subname])
       else: # element not created yet - go make it
-        if subname in specs:
-          self.__add_element_from_specification(specs[subname], specs, elements)
+        if subname in self.__element_specs_by_name:
+          self.__add_element_from_specification(self.__element_specs_by_name[subname], elements)
           subelements.append(elements[subname])
         else:
           raise RuntimeError("No definition for element '%(e)s' in Blueprint." % {'e':subname})
@@ -65,16 +66,12 @@ class Blueprint:
     self.__log = logger
 
   def topLevelElements(self):
-    specs = {}
-    for esl in self.__element_specs_by_group.values():
-      for es in esl:      
-        if not es.logger:
-          es.logger = self.logger()
-        specs[es.name] = es
     elements = {}
-    for es in specs.values():
+    for es in self.__element_specs_by_name.values():
+      if not es.logger:
+        es.logger = self.logger()
       if es.name not in elements.keys():
-        self.__add_element_from_specification(es, specs, elements)
+        self.__add_element_from_specification(es, elements)
     tlelements = []
     for ename, element in elements.items():
       if ename not in self.__non_root_elements:
@@ -82,15 +79,15 @@ class Blueprint:
     return tlelements
 
   def addElements(self, names, kind, group='', elements=[], logger=None, **kwargs):
-    if group not in self.__element_specs_by_group:
-      self.__element_specs_by_group[group] = []
     if type(elements) is str:
       elements = [elements]
-    for grp in self.__element_specs_by_group.keys():
-      for es in self.__element_specs_by_group[grp]:
-        if names==es.name:
-          raise RuntimeError("Duplicate element: there is already an element called '%(n)s'." % {'n':es.name})
-    self.__element_specs_by_group[group].append(Blueprint.__ElementSpec(names, kind, elements, logger, **kwargs))
+    if names in self.__element_specs_by_name:
+      raise RuntimeError("Duplicate element: there is already an element called '%(n)s'." % {'n':es.name})
+    new_spec = Blueprint.__ElementSpec(names, kind, elements, logger, **kwargs)
+    self.__element_specs_by_name[names] = new_spec
+    if group not in self.__element_specs_by_group:
+      self.__element_specs_by_group[group] = []
+    self.__element_specs_by_group[group].append(new_spec)
     for e in elements:
       if e not in self.__non_root_elements:
         self.__non_root_elements.add(e)
