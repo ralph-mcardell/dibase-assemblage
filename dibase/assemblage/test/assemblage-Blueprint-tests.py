@@ -446,7 +446,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
     try:
       b.topLevelElements()
     except RuntimeError as e:
-      print("\test_blueprint_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements\n"
+      print("\ntest_blueprint_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements\n"
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
 #    .withLogger()
 #      .addHandler()
