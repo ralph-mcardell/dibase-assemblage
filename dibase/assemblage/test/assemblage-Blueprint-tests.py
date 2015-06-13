@@ -24,6 +24,14 @@ class TestComponent:
     return self.name < other.name
 
 class TestAssemblageBlueprint(unittest.TestCase):
+  log_output = io.StringIO()
+  @classmethod
+  def setUpClass(cls):
+    old_stdout = sys.stdout
+    sys.stdout = cls.log_output
+    Blueprint().logger()
+    sys.stdout = old_stdout
+
   def test_default_blueprint_has_usaable_default_logger(self):
     self.assertIsInstance(Blueprint().logger(), logging.Logger)
     self.assertTrue(Blueprint().logger().hasHandlers())
@@ -41,6 +49,23 @@ class TestAssemblageBlueprint(unittest.TestCase):
     self.assertTrue(b.logger().isEnabledFor(logging.DEBUG))
     b.logger().debug('Oops!')
     self.assertEqual(stringstream.getvalue(),'SETLOGGERTEST: DEBUG: Oops!\n')
+  def test_setting_logger_to_None_after_logger_set_will_reapply_default_logger_correctly_on_next_call_to_logger(self):
+    def blueprintLoggerWrapper(bp, redirected_stdout_writer):
+      old_stdout = sys.stdout
+      sys.stdout = redirected_stdout_writer
+      lger = bp.logger()
+      sys.stdout = old_stdout
+      return lger
+    b = Blueprint()
+    self.assertIsInstance(b.logger(), logging.Logger)
+    b.setLogger(None)
+    self.assertIsInstance(blueprintLoggerWrapper(b, self.log_output), logging.Logger)
+    b.setLogger(None)    
+    self.assertTrue(blueprintLoggerWrapper(b, self.log_output).hasHandlers())
+    b.setLogger(None)    
+    self.assertTrue(blueprintLoggerWrapper(b, self.log_output).isEnabledFor(logging.INFO))
+    blueprintLoggerWrapper(b, self.log_output).info("MULTIPLE DEFAULT LOGGER HANDLERS TEST")
+    self.assertEqual(self.log_output.getvalue().count('\n'), 1)
   def test_blueprint_topLevelElements_returns_false_if_no_elements_added(self):
     self.assertFalse(Blueprint().topLevelElements())
   def test_blueprint_topLevelElements_returns_properly_initialised_element_if_one_added(self):

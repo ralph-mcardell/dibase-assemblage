@@ -12,6 +12,7 @@ License: dual: GPL or BSD.
 '''
 
 import logging
+import sys
 
 class Blueprint:
   '''
@@ -109,13 +110,15 @@ class Blueprint:
     Internal method to set a default logging.Logger to use should their not
     have been one set at the time the logger method is called.
     '''
-    loghdr = logging.StreamHandler()
-    loghdr.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(levelname)s: %(message)s')
-    loghdr.setFormatter(formatter)
     self.__log = logging.getLogger("assemblage.default")
-    self.__log.addHandler(loghdr)
-    self.__log.setLevel(logging.INFO)
+    self.__log.propagate = False
+    if not self.__log.hasHandlers():
+      loghdr = logging.StreamHandler(stream=sys.stdout)
+      loghdr.setLevel(logging.INFO)
+      formatter = logging.Formatter('%(levelname)s: %(message)s')
+      loghdr.setFormatter(formatter)
+      self.__log.addHandler(loghdr)
+      self.__log.setLevel(logging.INFO)
 
   def __add_element_from_specification(self, specification, elements):
     '''
