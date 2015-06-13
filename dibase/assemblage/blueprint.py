@@ -223,7 +223,7 @@ class Blueprint:
       else:
         outargs = elements
       return [outargs] if type(outargs) is str else outargs
-    def resolve_to_list(value):
+    def resolve_to_collection(value):
       if type(value) is str:
         return [value]
       elif callable(value):
@@ -231,8 +231,8 @@ class Blueprint:
       else:
         return value
 
-    names = resolve_to_list(names)
-    elements = resolve_to_list(elements)
+    names = resolve_to_collection(names)
+    elements = resolve_to_collection(elements)
     nm_index = 0
     for name in names:
       if name in self.__element_specs_by_name:
