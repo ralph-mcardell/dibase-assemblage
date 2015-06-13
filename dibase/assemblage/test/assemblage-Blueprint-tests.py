@@ -36,12 +36,12 @@ class TestAssemblageBlueprint(unittest.TestCase):
     self.assertIsInstance(Blueprint().logger(), logging.Logger)
     self.assertTrue(Blueprint().logger().hasHandlers())
     self.assertTrue(Blueprint().logger().isEnabledFor(logging.INFO))
-  def test_blueprint_logger_returns_specific_logger_if_one_set_with_setlogger(self):
+  def test_logger_returns_specific_logger_if_one_set_with_setlogger(self):
     stringstream = io.StringIO()
     loghdr = logging.StreamHandler(stringstream)
     formatter = logging.Formatter('SETLOGGERTEST: %(levelname)s: %(message)s')
     loghdr.setFormatter(formatter)
-    log = logging.getLogger('.'.join([__name__, "test_blueprint_logger_returns_specific_logger_if_one_set_with_setlogger"]))
+    log = logging.getLogger('.'.join([__name__, "test_logger_returns_specific_logger_if_one_set_with_setlogger"]))
     log.addHandler(loghdr)
     log.setLevel(logging.DEBUG)
     b = Blueprint()
@@ -49,7 +49,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
     self.assertTrue(b.logger().isEnabledFor(logging.DEBUG))
     b.logger().debug('Oops!')
     self.assertEqual(stringstream.getvalue(),'SETLOGGERTEST: DEBUG: Oops!\n')
-  def test_setting_logger_to_None_after_logger_set_will_reapply_default_logger_correctly_on_next_call_to_logger(self):
+  def test_setting_logger_to_None_after_logger_is_set_will_reapply_default_logger_correctly_on_next_call_to_logger(self):
     def blueprintLoggerWrapper(bp, redirected_stdout_writer):
       old_stdout = sys.stdout
       sys.stdout = redirected_stdout_writer
@@ -66,9 +66,9 @@ class TestAssemblageBlueprint(unittest.TestCase):
     self.assertTrue(blueprintLoggerWrapper(b, self.log_output).isEnabledFor(logging.INFO))
     blueprintLoggerWrapper(b, self.log_output).info("MULTIPLE DEFAULT LOGGER HANDLERS TEST")
     self.assertEqual(self.log_output.getvalue().count('\n'), 1)
-  def test_blueprint_topLevelElements_returns_false_if_no_elements_added(self):
+  def test_topLevelElements_returned_value_is_convertible_to_False_if_no_elements_added(self):
     self.assertFalse(Blueprint().topLevelElements())
-  def test_blueprint_topLevelElements_returns_properly_initialised_element_if_one_added(self):
+  def test_topLevelElements_returns_properly_initialised_element_if_one_added(self):
     b = Blueprint()
     b.addElements('testelement',TestComponent)
     self.assertEqual(len(b.topLevelElements()),1)
@@ -77,7 +77,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement')
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_properly_initialised_element_if_one_added_to_group(self):
+  def test_topLevelElements_returns_properly_initialised_element_if_one_added_to_group(self):
     b = Blueprint()
     b.addElements('testelement',TestComponent, group="testgroup")
     self.assertEqual(len(b.topLevelElements()),1)
@@ -86,7 +86,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement')
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_element_with_additional_initialisation_parameters_passed_if_one_added(self):
+  def test_topLevelElements_returns_element_with_additional_initialisation_parameters_passed_if_one_added(self):
     b = Blueprint()
     b.addElements('testelement',TestComponent, custom_arg='custom', another_arg='arg2')
     self.assertEqual(len(b.topLevelElements()),1)
@@ -95,7 +95,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertIn('another_arg', e.args)
       self.assertEqual(e.args['custom_arg'], 'custom')
       self.assertEqual(e.args['another_arg'], 'arg2')
-  def test_blueprint_topLevelElements_returns_element_with_additional_specific_initialisation_parameters_passed_if_one_added(self):
+  def test_topLevelElements_returns_element_with_additional_specific_initialisation_parameters_passed_if_one_added(self):
     class LocalComponent:
       def __init__(self, name, elements, logger, arg1, arg2):
         self.name = name
@@ -109,7 +109,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
     for e in b.topLevelElements():
       self.assertEqual(e.arg1, 'custom')
       self.assertEqual(e.arg2, 'arg2')
-  def test_blueprint_topLevelElements_returns_properly_initialised_elements_if_some_added(self):
+  def test_topLevelElements_returns_properly_initialised_elements_if_some_added(self):
     b = Blueprint()
     b.addElements('testelement1',TestComponent)
     b.addElements('testelement2',TestComponent)
@@ -122,7 +122,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_properly_initialised_elements_if_some_added_and_are_group_members(self):
+  def test_topLevelElements_returns_properly_initialised_elements_if_some_added_and_are_group_members(self):
     b = Blueprint()
     b.addElements('testelement1',TestComponent)
     b.addElements('testelement2',TestComponent, group="G1")
@@ -138,7 +138,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_elements_with_additional_initialisation_parameters_passed_if_some_added(self):
+  def test_topLevelElements_returns_elements_with_additional_initialisation_parameters_passed_if_some_added(self):
     b = Blueprint()
     b.addElements('testelement1',TestComponent, custom_arg='custom1', another_arg='arg2-1')
     b.addElements('testelement2',TestComponent, custom_arg='custom2', another_arg='arg2-2')
@@ -152,7 +152,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertIn('another_arg', e.args)
       self.assertEqual(e.args['custom_arg'], 'custom%(n)d' % {'n':n})
       self.assertEqual(e.args['another_arg'], 'arg2-%(n)d' % {'n':n})
-  def test_blueprint_topLevelElements_returns_elements_with_additional_specific_initialisation_parameters_passed_if_some_added(self):
+  def test_topLevelElements_returns_elements_with_additional_specific_initialisation_parameters_passed_if_some_added(self):
     class LocalComponent:
       def __init__(self, name, elements, logger, arg1, arg2):
         self.name = name
@@ -172,7 +172,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       n = n + 1
       self.assertEqual(e.arg1, 'custom%(n)d' % {'n':n})
       self.assertEqual(e.arg2, 'arg2-%(n)d' % {'n':n})
-  def test_blueprint_topLevelElements_returns_single_element_if_one_added_with_another_as_subelement_root_defined_last(self):
+  def test_topLevelElements_returns_single_element_if_one_added_with_another_as_subelement_root_defined_last(self):
     b = Blueprint()
     b.addElements('rootDependsOn',TestComponent)
     b.addElements('root',TestComponent, elements='rootDependsOn')
@@ -187,7 +187,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'rootDependsOn')
         self.assertIs(sub.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_single_element_if_one_added_with_another_as_subelement_root_defined_first(self):
+  def test_topLevelElements_returns_single_element_if_one_added_with_another_as_subelement_root_defined_first(self):
     b = Blueprint()
     b.addElements('root',TestComponent, elements='rootDependsOn')
     b.addElements('rootDependsOn',TestComponent)
@@ -203,7 +203,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertEqual(sub.name, 'rootDependsOn')
         self.assertIs(sub.logger, b.logger())
         self.assertFalse(sub.elements)
-  def test_blueprint_adding_element_with_same_name_as_a_previously_added_element_raises_exception(self):
+  def test_adding_element_with_same_name_as_a_previously_added_element_raises_exception(self):
     b = Blueprint()
     b.addElements('attempted_duplicate_name',TestComponent)
     b.addElements('some_other_name',TestComponent)
@@ -212,9 +212,9 @@ class TestAssemblageBlueprint(unittest.TestCase):
     try:
       b.addElements('attempted_duplicate_name',TestComponent)
     except RuntimeError as e:
-      print("\ntest_blueprint_adding_element_with_same_name_as_a_previously_added_element_raises_exception\n"
+      print("\ntest_adding_element_with_same_name_as_a_previously_added_element_raises_exception\n"
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
-  def test_blueprint_topLevelElements_raises_exception_if_named_subelement_not_added_as_element(self):
+  def test_topLevelElements_raises_exception_if_named_subelement_not_added_as_element(self):
     b = Blueprint()
     b.addElements('root',TestComponent, elements='root_required_element_but_not_defined')
     with self.assertRaises(RuntimeError):
@@ -222,9 +222,9 @@ class TestAssemblageBlueprint(unittest.TestCase):
     try:
       b.topLevelElements()
     except RuntimeError as e:
-      print("\ntest_blueprint_topLevelElements_raises_exception_if_named_subelement_not_added_as_element\n"
+      print("\ntest_topLevelElements_raises_exception_if_named_subelement_not_added_as_element\n"
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
-  def test_blueprint_topLevelElements_returns_all_elements_if_multiple_added_in_one_addelements_call(self):
+  def test_topLevelElements_returns_all_elements_if_multiple_added_in_one_addElements_call(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent)
     tle = b.topLevelElements()
@@ -236,7 +236,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_all_elements_if_multiple_added_in_one_addelements_call_as_group_members(self):
+  def test_topLevelElements_returns_all_elements_if_multiple_added_in_one_addElements_call_as_group_members(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, group="G1")
     b.addElements(['testelement4', 'testelement5','testelement6'],TestComponent, group="G2")
@@ -249,7 +249,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_same_init_parameters_passed_if_present(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_same_init_parameters_passed_if_present(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, custom_arg='custom', another_arg='arg2')
     self.assertEqual(len(b.topLevelElements()),3)
@@ -258,7 +258,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertIn('another_arg', e.args)
       self.assertEqual(e.args['custom_arg'], 'custom')
       self.assertEqual(e.args['another_arg'], 'arg2')
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_init_parameters_passed_as_lists(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_init_parameters_passed_as_lists(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, custom_arg=['custom1','custom2','custom3']
                   , another_arg=['arg2-1','arg2-2','arg2-3'])
@@ -270,7 +270,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertIn('another_arg', e.args)
       self.assertEqual(e.args['custom_arg'], 'custom%(n)d' % {'n':n})
       self.assertEqual(e.args['another_arg'], 'arg2-%(n)d' % {'n':n})
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_init_parameters_passed_as_dicts(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_init_parameters_passed_as_dicts(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent
                   , custom_arg={'testelement2':'custom2','testelement3':'custom3','testelement1':'custom1'}
@@ -284,7 +284,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertIn('another_arg', e.args)
       self.assertEqual(e.args['custom_arg'], 'custom%(n)d' % {'n':n})
       self.assertEqual(e.args['another_arg'], 'arg2-%(n)d' % {'n':n})
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_same_single_subelement(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_same_single_subelement(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, elements='common_subelement')
     b.addElements('common_subelement',TestComponent)
@@ -301,7 +301,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'common_subelement')
         self.assertIs(sub.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_same_multiple_subelements(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_same_multiple_subelements(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent, elements=['common_se-1','common_se-2','common_se-3'])
     b.addElements('common_se-1',TestComponent)
@@ -322,7 +322,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'common_se-%(m)d' % {'m':m})
         self.assertIs(sub.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_subelement_passed_as_lists(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_subelement_passed_as_lists(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent
                   , elements=[[],['custom21'],['custom31','custom32']]
@@ -341,7 +341,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'custom%(n)d%(m)d' % {'n':n,'m':m})
         self.assertIs(sub.logger, b.logger())
-  def test_blueprint_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_subelement_passed_as_dicts(self):
+  def test_topLevelElements_returns_all_elements_from_addElements_call_with_coresponding_subelement_passed_as_dicts(self):
     b = Blueprint()
     b.addElements(['testelement1', 'testelement2','testelement3'],TestComponent
                   , elements={'testelement2':['custom21'],'testelement3':['custom31','custom32'],'testelement1':[]}
@@ -360,7 +360,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'custom%(n)d%(m)d' % {'n':n,'m':m})
         self.assertIs(sub.logger, b.logger())
-  def test_blueprint_addElements_detects_callable_for_element_names_and_passes_element_info_object_to_it_to_create_names(self):
+  def test_addElements_detects_callable_for_element_names_and_passes_element_info_object_to_it_to_create_names(self):
     b = Blueprint()
     b.addElements(lambda element_data : ['testelement1', 'testelement2','testelement3'],TestComponent)
     self.assertEqual(len(b.topLevelElements()),3)
@@ -371,7 +371,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
       self.assertEqual(e.name, 'testelement%(n)d' % {'n':n})
       self.assertFalse(e.elements)
       self.assertIs(e.logger, b.logger())
-  def test_blueprint_addElements_detects_callable_for_element_subelements_and_passes_element_info_object_to_it_to_create_subelements(self):
+  def test_addElements_detects_callable_for_element_subelements_and_passes_element_info_object_to_it_to_create_subelements(self):
     b = Blueprint()
     b.addElements( ['src1', 'src2','src3'],TestComponent,group='src')
     b.addElements( ['testelement1', 'testelement2','testelement3'],TestComponent
@@ -386,7 +386,7 @@ class TestAssemblageBlueprint(unittest.TestCase):
         self.assertIsInstance(sub, TestComponent)
         self.assertEqual(sub.name, 'src%(n)d' % {'n':n})
         self.assertIs(sub.logger, b.logger())
-  def test_blueprint_addElements_complex_callable_element_names_and_subelement_exercing_passed_element_data_interface(self):
+  def test_addElements_complex_callable_element_names_and_subelement_exercing_passed_element_data_interface(self):
     b = Blueprint()
     b.addElements( ['src1.cpp', 'src2.cpp','src3.cpp'],TestComponent,group='src')
     b.addElements( ['src1.h', 'src2.h','src3.h'],TestComponent,group='src-hdrs')
@@ -427,17 +427,17 @@ class TestAssemblageBlueprint(unittest.TestCase):
           self.assertEqual(sub.name, 'src%(n)d%(e)s' % {'n':n,'e':extns[m]})
           self.assertIs(sub.logger, b.logger())
           m = m + 1
-  def test_blueprint_addElements_callable_parameter_function_returning_scalar_string_is_resolved_to_list(self):
+  def test_addElements_callable_parameter_function_returning_single_string_is_resolved_to_list(self):
     b = Blueprint()
     b.addElements('itIsAString', TestComponent)
     b.addElements(lambda element_data : 'testelement1',TestComponent, elements=lambda element_data:"itIsAString")
     self.assertEqual(len(b.topLevelElements()),1)
-  def test_blueprint_addElements_callable_parameter_function_returning_cdadllable_returning_string_is_resolved_to_list(self):
+  def test_addElements_callable_parameter_function_returning_callable_returning_string_is_resolved_to_list(self):
     b = Blueprint()
     b.addElements('itIsAString', TestComponent)
     b.addElements(lambda element_data : lambda element_data: 'testelement1',TestComponent, elements=lambda element_data : lambda element_data:"itIsAString")
     self.assertEqual(len(b.topLevelElements()),1)
-  def test_blueprint_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements(self):
+  def test_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements(self):
     b = Blueprint()
     b.addElements('root', TestComponent, elements='child')
     b.addElements('child', TestComponent, elements='root')
@@ -446,13 +446,8 @@ class TestAssemblageBlueprint(unittest.TestCase):
     try:
       b.topLevelElements()
     except RuntimeError as e:
-      print("\ntest_blueprint_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements\n"
+      print("\ntest_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements\n"
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
-#    .withLogger()
-#      .addHandler()
-#      .addFilter()
-#    .done()
-#    .addElements(names,kind,group='', elements=None)
 
 if __name__ == '__main__':
   unittest.main()
