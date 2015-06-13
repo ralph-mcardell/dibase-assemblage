@@ -427,6 +427,16 @@ class TestAssemblageBlueprint(unittest.TestCase):
           self.assertEqual(sub.name, 'src%(n)d%(e)s' % {'n':n,'e':extns[m]})
           self.assertIs(sub.logger, b.logger())
           m = m + 1
+  def test_blueprint_addElements_callable_parameter_function_returning_scalar_string_is_resolved_to_list(self):
+    b = Blueprint()
+    b.addElements('itIsAString', TestComponent)
+    b.addElements(lambda element_data : 'testelement1',TestComponent, elements=lambda element_data:"itIsAString")
+    self.assertEqual(len(b.topLevelElements()),1)
+  def test_blueprint_addElements_callable_parameter_function_returning_cdadllable_returning_string_is_resolved_to_list(self):
+    b = Blueprint()
+    b.addElements('itIsAString', TestComponent)
+    b.addElements(lambda element_data : lambda element_data: 'testelement1',TestComponent, elements=lambda element_data : lambda element_data:"itIsAString")
+    self.assertEqual(len(b.topLevelElements()),1)
 
 #    .withLogger()
 #      .addHandler()

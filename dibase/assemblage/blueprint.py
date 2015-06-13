@@ -191,16 +191,24 @@ class Blueprint:
     dependent elements. It may also be a list of lists - with each inner list
     corresponding to the elements for the element with the name in the
     same position in the names parameter's list. A dictionary may also be used
-    in which the key is name to which the elements apply to and the value is a
+    in which the key is name to which the elements apply and the value is a
     string or list naming one or more elements. Finally, like the names
     parameter, a function may be provided that returns the (sub-)elements
     for each element.
     The logger argument allows elements to use a specific logging.Logger.
     If not provided the elements will be passed the logger set for Blueprint
     object at the time topLevelElements creates them.
-    Any other parameters provided form the kwargs parameter and are passed as
-    additional creation parameters to element object construction.
+    Any other parameters provided by the kwargs parameter are passed as
+    additional creation parameters to element object construction. AT this time
+    all elements created by a single addElements call have to use the same
+    additional argument values.
     
+    The functions that may be provide for names and elements argument values
+    take a type that allows access to names of elements in groups (see the
+    Blueprint.__ElementView class). They may return any value that could be
+    passed to the names or elements parameters - including another callable
+    function. This can be done repeatedly but it is suggested that more than a
+    few recursions is probably not useful.
     A RuntimeError is raised if an element (specification) with a given name
     has already been added.
     '''
@@ -227,7 +235,7 @@ class Blueprint:
       if type(value) is str:
         return [value]
       elif callable(value):
-        return value(Blueprint.__ElementView(self.__element_specs_by_group))
+        return resolve_to_collection(value(Blueprint.__ElementView(self.__element_specs_by_group)))
       else:
         return value
 
