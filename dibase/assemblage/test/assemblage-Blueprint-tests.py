@@ -437,7 +437,17 @@ class TestAssemblageBlueprint(unittest.TestCase):
     b.addElements('itIsAString', TestComponent)
     b.addElements(lambda element_data : lambda element_data: 'testelement1',TestComponent, elements=lambda element_data : lambda element_data:"itIsAString")
     self.assertEqual(len(b.topLevelElements()),1)
-
+  def test_blueprint_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements(self):
+    b = Blueprint()
+    b.addElements('root', TestComponent, elements='child')
+    b.addElements('child', TestComponent, elements='root')
+    with self.assertRaisesRegex(RuntimeError, "^(?!.*maximum recursion)"):
+      b.topLevelElements()
+    try:
+      b.topLevelElements()
+    except RuntimeError as e:
+      print("\test_blueprint_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements\n"
+            "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
 #    .withLogger()
 #      .addHandler()
 #      .addFilter()
