@@ -127,18 +127,21 @@ class Blueprint:
     Passed the specification to use to create the element and an elements
     'element name:element' dictionary to hold newly created elements.
     seen_elements keeps track of elements already seen by this sequence of
+    recursive calls. topLevelElements starts a new sequence of calls by passing
     seen_elements as an empty list.
     '''
     subelements = []
+    seen_elements.append(specification.name)
     for subname in specification.elements:
       if subname in seen_elements:
+        raise RuntimeError("Circular reference: Child element '%(c)s' is also an ancestor of '%(a)s'"
                           % {'c':subname, 'a':specification.name}
                           )
       if subname in elements:
         subelements.append(elements[subname])
+        seen_elements.append(subname)
       else: # element not created yet - go make it
         if subname in self.__element_specs_by_name:
-          self.__add_element_from_specification(self.__element_specs_by_name[subname], elements)
           self.__add_element_from_specification(self.__element_specs_by_name[subname], elements, seen_elements)
           subelements.append(elements[subname])
         else:
