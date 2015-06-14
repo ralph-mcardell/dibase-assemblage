@@ -448,6 +448,13 @@ class TestAssemblageBlueprint(unittest.TestCase):
     except RuntimeError as e:
       print("\ntest_addElements_creates_cyclic_element_graph_raises_exception_from_topLevelElements\n"
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
+  def test_addElements_creates_non_cyclic_element_graph_with_shared_nodes_does_not_raise_exception_from_topLevelElements(self):
+    b = Blueprint()
+    b.addElements('root', TestComponent, elements=['child0','child1'])
+    b.addElements('child0', TestComponent, elements='grandchild0')
+    b.addElements('child1', TestComponent, elements='grandchild0')
+    b.addElements('grandchild0', TestComponent)
+    self.assertEqual(len(b.topLevelElements()),1)
 
 if __name__ == '__main__':
   unittest.main()

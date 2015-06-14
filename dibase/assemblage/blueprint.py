@@ -139,7 +139,6 @@ class Blueprint:
                           )
       if subname in elements:
         subelements.append(elements[subname])
-        seen_elements.append(subname)
       else: # element not created yet - go make it
         if subname in self.__element_specs_by_name:
           self.__add_element_from_specification(self.__element_specs_by_name[subname], elements, seen_elements)
@@ -148,6 +147,7 @@ class Blueprint:
           raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
     elements[specification.name] = \
       (specification.kind(name=specification.name,elements=subelements,logger=specification.logger,**specification.args))
+    seen_elements.remove(specification.name)
 
   def logger(self):
     '''
