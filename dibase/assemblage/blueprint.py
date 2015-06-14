@@ -120,35 +120,6 @@ class Blueprint:
       self.__log.addHandler(loghdr)
       self.__log.setLevel(logging.INFO)
 
-  def __add_element_from_specification(self, specification, elements, seen_elements):
-    '''
-    Internal helper method for topLevelElememnts. Creates an element. 
-    First recursively creates any of its (sub-)elements that do not yet exist.
-    Passed the specification to use to create the element and an elements
-    'element name:element' dictionary to hold newly created elements.
-    seen_elements keeps track of elements already seen by this sequence of
-    recursive calls. topLevelElements starts a new sequence of calls by passing
-    seen_elements as an empty list.
-    '''
-    subelements = []
-    seen_elements.append(specification.name)
-    for subname in specification.elements:
-      if subname in seen_elements:
-        raise RuntimeError("Circular reference: Child element '%(c)s' is also an ancestor of '%(a)s'"
-                          % {'c':subname, 'a':specification.name}
-                          )
-      if subname in elements:
-        subelements.append(elements[subname])
-      else: # element not created yet - go make it
-        if subname in self.__element_specs_by_name:
-          self.__add_element_from_specification(self.__element_specs_by_name[subname], elements, seen_elements)
-          subelements.append(elements[subname])
-        else:
-          raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
-    elements[specification.name] = \
-      (specification.kind(name=specification.name,elements=subelements,logger=specification.logger,**specification.args))
-    seen_elements.remove(specification.name)
-
   def logger(self):
     '''
     Returns the logging.Logger instance associated with this Blueprint. If
@@ -172,12 +143,41 @@ class Blueprint:
     network of elements - that is elements may share child elements, but a
     child element cannot have an ancestor as a child.
     '''
+
+    def add_element_from_specification(specification, elements, seen_elements):
+      '''
+      Internal helper method for topLevelElememnts. Creates an element. 
+      First recursively creates any of its (sub-)elements that do not yet exist.
+      Passed the specification to use to create the element and an elements
+      'element name:element' dictionary to hold newly created elements.
+      seen_elements keeps track of elements already seen by this sequence of
+      recursive calls. topLevelElements starts a new sequence of calls by
+      passing seen_elements as an empty list.
+      '''
+      subelements = []
+      seen_elements.append(specification.name)
+      for subname in specification.elements:
+        if subname in seen_elements:
+          raise RuntimeError("Circular reference: Child element '%(c)s' is also an ancestor of '%(a)s'"
+                            % {'c':subname, 'a':specification.name}
+                            )
+        if subname in elements:
+          subelements.append(elements[subname])
+        else: # element not created yet - go make it
+          if subname in self.__element_specs_by_name:
+            add_element_from_specification(self.__element_specs_by_name[subname], elements, seen_elements)
+            subelements.append(elements[subname])
+          else:
+            raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
+      elements[specification.name] = \
+        (specification.kind(name=specification.name,elements=subelements,logger=specification.logger,**specification.args))
+      seen_elements.remove(specification.name)
     elements = {}
     for es in self.__element_specs_by_name.values():
       if not es.logger:
         es.logger = self.logger()
       if es.name not in elements.keys():
-        self.__add_element_from_specification(es, elements, seen_elements=[])
+        add_element_from_specification(es, elements, seen_elements=[])
     tlelements = []
     for ename, element in elements.items():
       if ename not in self.__non_root_elements:
