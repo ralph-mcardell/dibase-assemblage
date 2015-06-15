@@ -102,6 +102,10 @@ class Component:
   def __ge__(self, other):
     return str(self) >= str(other)
 
+  def __debug(self, message):
+    callerframe = inspect.getouterframes(inspect.currentframe(),2)
+    self.__logger.debug(" [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message})
+  
   def __get_class_in_callers_scope(self, name, start_frame=2):
     def get_module_from_frame(frame):
       module_name = frame.f_globals['__name__']
@@ -110,21 +114,27 @@ class Component:
         if inspect.ismodule(module):
           return module
       return None
-  
+
+    def strmap(map, prefix='\n      '):
+      mapstr = ''.join(['{{MAP TYPE : ',str(type(map)),'}}'])
+      for k,v in map.items():
+        mapstr = ''.join([mapstr,prefix,str(k),' : ',str(v),prefix, "  (type=",str(type(v)),')'])
+      return mapstr
+
     frames = inspect.stack()
     if len(frames) < start_frame:
       return None
     frame = frames[start_frame][0]
     flocals = frame.f_locals
-#    self.__logger.debug("FRAME  LOCALS:",strmap(flocals))
-#    self.__logger.debug("FRAME GLOBALS:",strmap(frame.f_globals))
+#    self.__debug("FRAME  LOCALS:%s" % strmap(flocals))
+#    self.__debug("FRAME GLOBALS:%s" % strmap(frame.f_globals))
     if name in flocals.keys():
       if inspect.isclass(flocals[name]):
         return flocals[name]
     if 'self' in flocals.keys(): # assume called from instance method:
       qualified_type = type(flocals['self'])
-    elif 'cls' in flocals.keys(): # assume caled from class method
-      qualified_type = flocals['cls'] ## cls _is a_ class!
+    elif 'cls' in flocals.keys(): # assume called from class method
+      qualified_type = flocals['cls']
     else: # assume it is a module level function - includes class static methods
       module = get_module_from_frame(frame)
       if module:
@@ -132,34 +142,34 @@ class Component:
         return the_class
       return None
     if inspect.isclass(qualified_type):
-      self.__logger.debug("LOOKING FOR '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
+      self.__debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
       qualname = qualified_type.__qualname__
       qualname_parts = qualname.split('.')
-#      self.__logger.debug('QUALIFIEDNAME PARTS:',qualname_parts);
+      self.__debug("Qualified name parts: '%s'" % qualname_parts);
       if qualname_parts[-1]==name:
         return qualified_type # self value is the type we are looking for!
       the_class = getattr(qualified_type, name, None)
       if the_class:
         return the_class
       del qualname_parts[-1] # we just checked to see if name was part of the last element
-#      self.__logger.debug('QUALIFIEDNAME PARTS TO BE PROCESSED:',qualname_parts);
+      self.__debug("Qualified name parts to be processed:'%s'" % qualname_parts);
       obj = get_module_from_frame(frame)
       if obj:
-#        self.__logger.debug('   Adding part', obj, '(type ',type(obj),')')
+        self.__debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
         obj_list = [obj]
         for part in qualname_parts:
           if part!='<locals>':
             obj = getattr(obj, part, None)
             if obj:
-#              self.__logger.debug('   Adding part', obj, '(type ',type(obj),')')
+              self.__debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
               obj_list.append(obj)
             else:
-#              self.__logger.debug("###Failed finding object for part '", part,"'", sep='')
+              self.__debug("### FAILED finding object for part '%s' ###" % part)
               return None
         for obj in reversed(obj_list):
-#          self.__logger.debug('   Looking at part', obj, '(type ',type(obj),')')
+          self.__debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
           if inspect.isclass(obj) or inspect.ismodule(obj):
-#            self.__logger.debug('   Processing part', obj, '(type ',type(obj),')')
+            self.__debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
             the_class = getattr(obj, name, None)
             if the_class:
               return the_class
@@ -168,26 +178,26 @@ class Component:
   def __get_class_qualname_in_callers_scope(self, name, start_frame=2):
     the_class = get_class_in_callers_scope(name, start_frame+1) # exclude our frame
     if the_class:
-#      self.__logger.debug("   Returning '", '.'.join([the_class.__module__,the_class.__qualname__]),"'")
+#      self.__debug("   Returning '%s'" % '.'.join([the_class.__module__,the_class.__qualname__]))
       return '.'.join([the_class.__module__,the_class.__qualname__])
     return None
   
   def __resolver(self,action, action_method_name, callers_frame=2):
-      self.__logger.debug("Component('%(n)s').apply('%(a)s): Resolving function '%(f)s'"
-                         % {'n':str(self), 'a':action,'f':action_method_name})
+      self.__debug("apply('%(a)s): Resolving function '%(f)s'"
+                         % {'a':action,'f':action_method_name})
       self_method_name = ''.join([action,'_', action_method_name])
       method = getattr(self, self_method_name, False)
       if method:
-        self.__logger.debug("  -- Found method 'self.%s'"%self_method_name)
+        self.__debug("Found method 'self.%s'"%self_method_name)
         return method
       else:
         action_class = self.__get_class_in_callers_scope(action,callers_frame)
         if action_class:
           method = getattr(action_class, action_method_name, False)
-          self.__logger.debug("  -- Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
+          self.__debug("Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
           return lambda : method(self)
         else:
-          self.__logger.debug("  !! class '%s' not found !!"%action)
+          self.__debug("!! class '%s' not found !!" % action)
           return False
  
   def __apply_inner(self, action, seen_components, callers_frame=5):
@@ -210,22 +220,19 @@ class Component:
                         % {'e':str(self), 'a':action}
                         )
     seen_components.append(self)
-    self.__logger.debug("Component('%(n)s').apply('%(a)s): Querying do before actions"
-                       % {'n':str(self), 'a':action})
+    self.__debug("apply('%s): Querying do before actions" % action)
     if query_do_before_elements_actions(action, callers_frame):
-      self.__logger.debug("  -- Passed check, doing before actions")
+      self.__debug("Passed check, doing before actions")
       do_before_elements_actions(action, callers_frame)
-    self.__logger.debug("Component('%(n)s').apply('%(a)s): Querying process elements"
-                        % {'n':str(self), 'a':action})
+    self.__debug("apply('%s): Querying process elements" % action)
     if query_process_elements(action, callers_frame):
-      self.__logger.debug("  -- Passed check, processing elements")
+      self.__debug("Passed check, processing elements")
       for element in self.__elements:
-        self.__logger.debug("  -- Processing element:'%s'"%element)
+        self.__debug("Processing element:'%s'"%element)
         element.__apply_inner(action, seen_components, callers_frame+1)
-    self.__logger.debug("Component('%(n)s').apply('%(a)s): Querying do after actions"
-                        % {'n':str(self), 'a':action})
+    self.__debug("apply('%s): Querying do after actions" % action)
     if query_do_after_elements_actions(action, callers_frame):
-      self.__logger.debug("  -- Passed check, doing after actions")
+      self.__debug("Passed check, doing after actions")
       do_after_elements_actions(action, callers_frame)
     seen_components.remove(self)
 
