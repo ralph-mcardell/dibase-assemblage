@@ -77,7 +77,7 @@ class Component:
       self.__logger = logger  
     else:
       self.__logger = logging.getLogger(logger)
-    self.__logger.debug("Created %s"%repr(self))
+    self.__debug("Created %s"%repr(self))
   def __repr__(self):
     '''
     Note: representation ignores __logger attribute.
