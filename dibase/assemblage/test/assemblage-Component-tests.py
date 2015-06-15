@@ -14,6 +14,31 @@ if parent_dir not in sys.path:
   sys.path.insert(0, parent_dir)
 from component import Component
 
+class someModuleScopeAction:
+  query_before = False
+  query_after = False
+  query_elements = False
+  before = False
+  after = False
+  @classmethod
+  def queryDoBeforeElementsActions(cls,element):
+    cls.query_before = True
+    return True
+  @classmethod
+  def queryDoAfterElementsActions(cls,element):
+    cls.query_after = True
+    return True
+  @classmethod
+  def queryProcessElements(cls,element):
+    cls.query_elements = True
+    return True
+  @classmethod
+  def beforeElementsActions(cls,element):
+    cls.before = True
+  @classmethod
+  def afterElementsActions(cls,element):
+    cls.after = True
+
 class TestAssemblageComponent(unittest.TestCase):
   log_level = logging.INFO 
 #  log_level = logging.DEBUG
@@ -156,12 +181,14 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(cstr>=d)
     self.assertFalse(c>=dstr)
   def test_Component_logs_to_logger_passed_in_construction(self):
+    self.logger.setLevel(logging.DEBUG)
     with self.assertLogs(self.logger,logging.DEBUG):
       Component("test", logger=self.logger)
     Component("test", logger=self.logger)
     print("\ntest_Component_logs_to_logger_passed_in_construction"
           "\n  INFORMATION: Component construction logged:\n    ",end='')
     self.show_log = True
+    self.logger.setLevel(self.log_level)
   def test_calling_apply_with_unsupported_action_causes_no_errors(self):
 #    self.show_log = True
     Component ( 'test-root'
@@ -320,6 +347,50 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(someAction.query_elements)
     self.assertTrue(someAction.before)
     self.assertTrue(someAction.after)
+  class someClassScopeAction:
+    query_before = False
+    query_after = False
+    query_elements = False
+    before = False
+    after = False
+    @classmethod
+    def queryDoBeforeElementsActions(cls,element):
+      cls.query_before = True
+      return True
+    @classmethod
+    def queryDoAfterElementsActions(cls,element):
+      cls.query_after = True
+      return True
+    @classmethod
+    def queryProcessElements(cls,element):
+      cls.query_elements = True
+      return True
+    @classmethod
+    def beforeElementsActions(cls,element):
+      cls.before = True
+    @classmethod
+    def afterElementsActions(cls,element):
+      cls.after = True
+  def test_apply_finds_action_class_defined_in_a_callers_outer_scope(self):
+#    self.show_log = True
+    child = Component('child', logger=self.logger)
+    root = Component('root',elements=[child], logger=self.logger)
+    root.apply('someClassScopeAction')
+    self.assertTrue(self.someClassScopeAction.query_before)
+    self.assertTrue(self.someClassScopeAction.query_after)
+    self.assertTrue(self.someClassScopeAction.query_elements)
+    self.assertTrue(self.someClassScopeAction.before)
+    self.assertTrue(self.someClassScopeAction.after)
+  def test_apply_finds_action_class_defined_in_callers_module_scope(self):
+#    self.show_log = True
+    child = Component('child', logger=self.logger)
+    root = Component('root',elements=[child], logger=self.logger)
+    root.apply('someModuleScopeAction')
+    self.assertTrue(someModuleScopeAction.query_before)
+    self.assertTrue(someModuleScopeAction.query_after)
+    self.assertTrue(someModuleScopeAction.query_elements)
+    self.assertTrue(someModuleScopeAction.before)
+    self.assertTrue(someModuleScopeAction.after)
 
 if __name__ == '__main__':
   unittest.main()
