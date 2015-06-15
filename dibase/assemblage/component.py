@@ -30,45 +30,7 @@ class Component:
   
   The main method is the apply method which applies an action (a string that is
   a valid Python identifier) to the component. The action is used to determine
-  what action steps to perform and what those steps are. The apply method uses
-  the action to call a function at 5 points in processing, 3 boolean query
-  functions and two action-step performing functions. If a function is not
-  located for an action then the default behaviour is to evaluate to False
-  for the query functions and do nothing for the action step function.  The
-  outline of apply processing is:
-
-    if queryDoBeforeElementsActions(the_action):
-      do_before_elements(the_action)
-    if query_process_elements(the_action):
-      for each of the component's elements, e:
-        e.apply(the_action)
-    if queryDoAfterElementsActions(the_action):
-      do_after_elements(the_action)
- 
-  The functions supporting an action are searched for using an action function
-  resolver. The default resolver looks first for the functions as method
-  attributes of the component object with the names:
-    <action name>_queryDoBeforeElementsActions
-    <action name>_queryDoAfterElementsActions
-    <action name>_queryProcessElements
-    <action name>_beforeElementsActions
-    <action name>_afterElementsActions
-  where <action name> is the action name string - 'build' or 'service_up' for
-  example. The methods would be defined in Component subclasses. No
-  parameters, other than self if the methods are instance methods, are passed
-  to the functions.
-
-  If a method function is not found then the default resolver checks up the
-  caller's scope, ignoring function local scopes other than that of the caller,
-  for an action class with the same name as the action. If such a class is
-  found class or static methods with the names:
-    queryDoBeforeElementsActions
-    queryDoAfterElementsActions
-    queryProcessElements
-    beforeElementsActions
-    afterElementsActions
-  are looked for and if found called with the self value of the calling
-  component.
+  what action steps to perform and what those steps are.
   '''
   def __init__(self, name, elements=[], logger=None):
     self.__name = name
@@ -238,4 +200,46 @@ class Component:
     seen_components.remove(self)
 
   def apply(self, action):
+    '''
+    Apply an action to an element.
+    action is expected to be a string that is a valid Python identifier.
+    It is used to locate functions used in the application of an action to
+    a Component element.
+    There are 5 functions that define how an action is processed by a
+    Component: 3 control what processing occurs and 2 perform processing:
+      queryDoBeforeElementsActions: 
+      Returns True if processing actions are to be performed before (possibly)
+      calling apply with the action for each of the Component's elements.
+
+      queryProcessElements:
+      Returns True if apply with the action should be called for each of the
+      Component's elements.
+
+      queryDoAfterElementsActions:
+      Returns True if processing actions are to be performed after apply was
+      potentially called with the action for each of the Component's elements.
+  
+      beforeElementsActions:
+      Actions that should be performed if necessary before applying the action
+      to the Component's elements.
+
+      afterElementsActions:
+      Actions that should be performed if necessary after applying the action
+      to the Component's elements.
+
+    Appropriate method functions are looked for first as instance methods of
+    the Component (defined by a Component subclass), and have the action name
+    and an underscore prefixed to the names shown above - so 
+    'queryProcessElements' for action 'doit' would have the name
+    'doit_queryProcessElements'. Such functions are not passed any parameters
+    other than the self parameter.
+
+    If no such method is located for the (action, function) pair then a class
+    having the same name as the action is searched for in the caller's scope,
+    starting with calling function local classes and moving out through any
+    (nested) class scopes to the caller's module level. If such a class is
+    found then methods of the names shown above a searched for and are expected
+    to be either class or static methods taking (other than the cls parameter
+    for class methods) only the Component as a parameter.
+    '''
     self.__apply_inner(action, [], callers_frame=6)
