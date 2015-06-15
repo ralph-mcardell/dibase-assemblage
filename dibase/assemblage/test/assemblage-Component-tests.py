@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 # v3.4+
 """
-Tests for dibase.assemblage.component.Component
+Tests for dibase.assemblage.component.Component 
 """
 import unittest
 import io
@@ -15,6 +15,8 @@ if parent_dir not in sys.path:
 from component import Component
 
 class TestAssemblageComponent(unittest.TestCase):
+  log_level = logging.INFO 
+#  log_level = logging.DEBUG
   log_output = io.StringIO()
   logger = None
   show_log = False
@@ -31,7 +33,7 @@ class TestAssemblageComponent(unittest.TestCase):
       formatter = logging.Formatter('%(levelname)s: %(message)s')
       loghdr.setFormatter(formatter)
       cls.logger.addHandler(loghdr)
-      cls.logger.setLevel(logging.DEBUG)
+      cls.logger.setLevel(cls.log_level)
   def setUp(self):
     self.clearLog();
   def tearDown(self):
@@ -157,10 +159,15 @@ class TestAssemblageComponent(unittest.TestCase):
     with self.assertLogs(self.logger,logging.DEBUG):
       Component("test", logger=self.logger)
     Component("test", logger=self.logger)
-    print("\ntest_Component_logs_to_logger_passed_in_construction\n  INFORMATION: Component construction logged:\n    ",end='')
+    print("\ntest_Component_logs_to_logger_passed_in_construction"
+          "\n  INFORMATION: Component construction logged:\n    ",end='')
     self.show_log = True
-  def test_calling_apply_with_unsupprted_action_causes_no_erros(self):
-    Component('test-root', elements=[Component('testchild')]).apply('noSuchAction')
+  def test_calling_apply_with_unsupported_action_causes_no_errors(self):
+#    self.show_log = True
+    Component ( 'test-root'
+              , elements=[Component('testchild', logger=self.logger)]
+              , logger=self.logger
+              ).apply('noSuchAction')
   def test_apply_does_no_action_steps_methods_if_query_action_methods_return_True_for_subclass_methods(self):
     class NeverDoAnyProcessingComponent(Component):
       def __init__(self,name,elements=[],logger=None):
@@ -203,7 +210,6 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(child.query_before)
     self.assertFalse(child.query_after)
     self.assertFalse(child.query_elements)
-
   def test_apply_does_action_steps_methods_if_query_action_methods_return_True_for_subclass_methods(self):
     class AlwaysDoAllComponent(Component):
       def __init__(self,name,elements=[],logger=None):

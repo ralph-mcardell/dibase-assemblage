@@ -103,8 +103,9 @@ class Component:
     return str(self) >= str(other)
 
   def __debug(self, message):
-    callerframe = inspect.getouterframes(inspect.currentframe(),2)
-    self.__logger.debug(" [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message})
+    if self.__logger.isEnabledFor(logging.DEBUG):
+      callerframe = inspect.getouterframes(inspect.currentframe(),2)
+      self.__logger.debug(" [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message})
   
   def __get_class_in_callers_scope(self, name, start_frame=2):
     def get_module_from_frame(frame):
