@@ -37,22 +37,22 @@ class Component:
   for the query functions and do nothing for the action step function.  The
   outline of apply processing is:
 
-    if query_do_before_elements_actions(the_action):
+    if queryDoBeforeElementsActions(the_action):
       do_before_elements(the_action)
     if query_process_elements(the_action):
       for each of the component's elements, e:
         e.apply(the_action)
-    if query_do_after_elements_actions(the_action):
+    if queryDoAfterElementsActions(the_action):
       do_after_elements(the_action)
  
   The functions supporting an action are searched for using an action function
   resolver. The default resolver looks first for the functions as method
   attributes of the component object with the names:
-    <action name>_query_do_before_elements_actions
-    <action name>_query_do_after_elements_actions
-    <action name>_query_process_elements_actions
-    <action name>_before_elements_actions
-    <action name>_after_elements_actions
+    <action name>_queryDoBeforeElementsActions
+    <action name>_queryDoAfterElementsActions
+    <action name>_queryProcessElements
+    <action name>_beforeElementsActions
+    <action name>_afterElementsActions
   where <action name> is the action name string - 'build' or 'service_up' for
   example. The methods would be defined in Component subclasses. No
   parameters, other than self if the methods are instance methods, are passed
@@ -62,11 +62,11 @@ class Component:
   caller's scope, ignoring function local scopes other than that of the caller,
   for an action class with the same name as the action. If such a class is
   found class or static methods with the names:
-    query_do_before_elements_actions
-    query_do_after_elements_actions
-    query_process_elements_actions
-    before_elements_actions
-    after_elements_actions
+    queryDoBeforeElementsActions
+    queryDoAfterElementsActions
+    queryProcessElements
+    beforeElementsActions
+    afterElementsActions
   are looked for and if found called with the self value of the calling
   component.
   '''
@@ -205,15 +205,15 @@ class Component:
       func = self.__resolver(action, action_method_name, callers_frame)
       return func and func()
     def query_do_before_elements_actions(action, callers_frame=4):
-      return resolve_and_call_function(action, 'query_do_before_elements_actions', callers_frame)
+      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', callers_frame)
     def query_do_after_elements_actions(action, callers_frame=4):
-      return resolve_and_call_function(action, 'query_do_after_elements_actions', callers_frame)
+      return resolve_and_call_function(action, 'queryDoAfterElementsActions', callers_frame)
     def query_process_elements( action, callers_frame=4):
-      return resolve_and_call_function(action, 'query_process_elements', callers_frame)
+      return resolve_and_call_function(action, 'queryProcessElements', callers_frame)
     def do_before_elements_actions( action, callers_frame=4):
-      resolve_and_call_function(action, 'before_elements_actions', callers_frame)
+      resolve_and_call_function(action, 'beforeElementsActions', callers_frame)
     def do_after_elements_actions(action, callers_frame=4):
-      resolve_and_call_function(action, 'after_elements_actions', callers_frame)
+      resolve_and_call_function(action, 'afterElementsActions', callers_frame)
 
     if self in seen_components:
       raise RuntimeError("Circular reference: already tried to apply action '%(a)s' to element '%(e)s'"

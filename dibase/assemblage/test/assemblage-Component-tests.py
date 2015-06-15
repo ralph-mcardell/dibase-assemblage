@@ -171,26 +171,26 @@ class TestAssemblageComponent(unittest.TestCase):
         self.after = False
         self.apply_called = False
         super().__init__(name,elements,logger)
-      def someAction_query_do_before_elements_actions(self):
+      def someAction_queryDoBeforeElementsActions(self):
         self.query_before = True
         return False
-      def someAction_query_do_after_elements_actions(self):
+      def someAction_queryDoAfterElementsActions(self):
         self.query_after = True
         return False
-      def someAction_query_process_elements(self):
+      def someAction_queryProcessElements(self):
         self.query_elements = True
         return False
-      def someAction_before_elements_actions(self):
+      def someAction_beforeElementsActions(self):
         self.before = True
-      def someAction_after_elements_actions(self):
+      def someAction_afterElementsActions(self):
         self.after = True
       def apply(self,action):
         self.apply_called = True
         super().apply(action)
+#    self.show_log = True
     child = NeverDoAnyProcessingComponent('child', logger=self.logger)
     root = NeverDoAnyProcessingComponent('root',elements=[child], logger=self.logger)
     root.apply('someAction')
-#    self.show_log = True
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
     self.assertTrue(root.query_after)
@@ -214,27 +214,26 @@ class TestAssemblageComponent(unittest.TestCase):
         self.after = False
         self.apply_called = False
         super().__init__(name,elements,logger)
-      def someAction_query_do_before_elements_actions(self):
+      def someAction_queryDoBeforeElementsActions(self):
         self.query_before = True
         return True
-      def someAction_query_do_after_elements_actions(self):
+      def someAction_queryDoAfterElementsActions(self):
         self.query_after = True
         return True
-      def someAction_query_process_elements(self):
+      def someAction_queryProcessElements(self):
         self.query_elements = True
         return True
-      def someAction_before_elements_actions(self):
+      def someAction_beforeElementsActions(self):
         self.before = True
-      def someAction_after_elements_actions(self):
+      def someAction_afterElementsActions(self):
         self.after = True
       def apply(self,action):
         self.apply_called = True
         super().apply(action)
-    action = 'someAction'
+#    self.show_log = True
     child = AlwaysDoAllComponent('child', logger=self.logger)
     root = AlwaysDoAllComponent('root',elements=[child], logger=self.logger)
     root.apply('someAction')
-#    self.show_log = True
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
     self.assertTrue(root.query_after)
@@ -255,28 +254,27 @@ class TestAssemblageComponent(unittest.TestCase):
       before = False
       after = False
       @classmethod
-      def query_do_before_elements_actions(cls,element):
+      def queryDoBeforeElementsActions(cls,element):
         cls.query_before = True
         return False
       @classmethod
-      def query_do_after_elements_actions(cls,element):
+      def queryDoAfterElementsActions(cls,element):
         cls.query_after = True
         return False
       @classmethod
-      def query_process_elements(cls,element):
+      def queryProcessElements(cls,element):
         cls.query_elements = True
         return False
       @classmethod
-      def before_elements_actions(cls,element):
+      def beforeElementsActions(cls,element):
         cls.before = True
       @classmethod
-      def after_elements_actions(cls,element):
+      def afterElementsActions(cls,element):
         cls.after = True
-
+#    self.show_log = True
     child = Component('child', logger=self.logger)
     root = Component('root',elements=[child], logger=self.logger)
     root.apply('someAction')
-#    self.show_log = True
     self.assertTrue(someAction.query_before)
     self.assertTrue(someAction.query_after)
     self.assertTrue(someAction.query_elements)
@@ -290,28 +288,27 @@ class TestAssemblageComponent(unittest.TestCase):
       before = False
       after = False
       @classmethod
-      def query_do_before_elements_actions(cls,element):
+      def queryDoBeforeElementsActions(cls,element):
         cls.query_before = True
         return True
       @classmethod
-      def query_do_after_elements_actions(cls,element):
+      def queryDoAfterElementsActions(cls,element):
         cls.query_after = True
         return True
       @classmethod
-      def query_process_elements(cls,element):
+      def queryProcessElements(cls,element):
         cls.query_elements = True
         return True
       @classmethod
-      def before_elements_actions(cls,element):
+      def beforeElementsActions(cls,element):
         cls.before = True
       @classmethod
-      def after_elements_actions(cls,element):
+      def afterElementsActions(cls,element):
         cls.after = True
-
+#    self.show_log = True
     child = Component('child', logger=self.logger)
     root = Component('root',elements=[child], logger=self.logger)
     root.apply('someAction')
-#    self.show_log = True
     self.assertTrue(someAction.query_before)
     self.assertTrue(someAction.query_after)
     self.assertTrue(someAction.query_elements)
