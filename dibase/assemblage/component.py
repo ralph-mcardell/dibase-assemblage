@@ -243,3 +243,25 @@ class Component:
     for class methods) only the Component as a parameter.
     '''
     self.__apply_inner(action, [], callers_frame=6)
+
+
+  def digest(self):
+    '''
+    Intended to be overridden.
+    Return a fixed length sequence of bytes representing the state of any
+    resource(s) managed by a Component element It is used for detection of
+    changes to resources in conjunction with a DigestCache (or similar) object.
+    As the base Component type does not manage any sort of resource it simply
+    returns a fixed 8-byte (64-bit) byte sequence.
+    '''
+    return b'Componen'
+
+  def doesNotExist(self):
+    '''
+    Intended to be overridden.
+    Returns True if the resource a Component represents - such as a file or
+    service process - does not exist.
+    The base Component implement always returns True as it has no associated
+    resource to exist.
+    '''
+    return True

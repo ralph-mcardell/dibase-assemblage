@@ -391,6 +391,24 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(someModuleScopeAction.query_elements)
     self.assertTrue(someModuleScopeAction.before)
     self.assertTrue(someModuleScopeAction.after)
+  def test_doesNotExist_returns_True(self):
+    self.assertTrue(Component('test').doesNotExist())
+  def test_overrident_doesNotExist_returns_override_result(self):
+    class ExistingComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def doesNotExist(self):
+        return False
+    self.assertFalse(ExistingComponent('test').doesNotExist())
+  def test_digest_returns_bytes_Componen(self):
+    self.assertEqual(Component('test').digest(),b'Componen')
+  def test_overrident_digest_returns_override_result(self):
+    class DigestingComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def digest(self):
+        return b'Digesting'
+    self.assertEqual(DigestingComponent('test').digest(),b'Digesting')
 
 if __name__ == '__main__':
   unittest.main()
