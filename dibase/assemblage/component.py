@@ -11,11 +11,12 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
+from interfaces import ElementBase
 import logging
 import inspect
 import sys
 
-class Component:
+class Component(ElementBase):
   '''
   Type that acts as the base element type in the assemblage package.
 
@@ -243,8 +244,6 @@ class Component:
     for class methods) only the Component as a parameter.
     '''
     self.__apply_inner(action, [], callers_frame=6)
-
-
   def digest(self):
     '''
     Intended to be overridden.
@@ -255,7 +254,6 @@ class Component:
     returns a fixed 8-byte (64-bit) byte sequence.
     '''
     return b'Componen'
-
   def doesNotExist(self):
     '''
     Intended to be overridden.
@@ -265,3 +263,30 @@ class Component:
     resource to exist.
     '''
     return True
+  def isOutOfDate(self):
+    '''
+    Returns True if the resource a Component or successor element represents 
+    - such as a file or service process - is out of date.
+    If the Component has child elements then they are iterated over passing
+    the request on to each and latching any True result. Otherwise the
+    Component is a leaf element with no child elements and the result of
+    calling the Component's hasChanged method is returned.
+    
+    That is, the only elements for which change checks need to be performed are
+    childless leaf elements as it is assumed these are changed externally to
+    the assemblage whereas all other elements presumably have actions that
+    re-create them from their child elements.
+    '''
+    result = False
+    if self.__elements:
+      for e in self.__elements: # intentionally touch all elements
+        result = e.isOutOfDate() or result
+    else:
+      result = self.hasChanged()
+    return result
+  def hasChanged(self):
+    '''
+    Always returns False as Component has no associated resource which
+    could have changed.
+    '''
+    return False

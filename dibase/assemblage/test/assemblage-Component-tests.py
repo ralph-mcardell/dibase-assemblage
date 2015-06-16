@@ -402,13 +402,67 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(ExistingComponent('test').doesNotExist())
   def test_digest_returns_bytes_Componen(self):
     self.assertEqual(Component('test').digest(),b'Componen')
-  def test_overrident_digest_returns_override_result(self):
+  def test_overridden_digest_returns_override_result(self):
     class DigestingComponent(Component):
       def __init__(self,name,elements=[],logger=None):
         super().__init__(name,elements,logger)
       def digest(self):
         return b'Digesting'
     self.assertEqual(DigestingComponent('test').digest(),b'Digesting')
+  def test_hasChanged_returns_False(self):
+    self.assertFalse(Component('test').hasChanged())
+  def test_overridden_hasChanged_returns_override_result(self):
+    class ChangedComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def hasChanged(self):
+        return True
+    self.assertTrue(ChangedComponent('test').hasChanged())
+  def test_isOutOfDate_on_single_leaf_Component_returns_False(self):
+    self.assertFalse(Component('test').isOutOfDate())
+  def test_isOutOfDate_on_single_leaf_Component_with_overridden_hasChanged_returns_hasChanged_override_result(self):
+    class ChangedComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def hasChanged(self):
+        return True
+    self.assertTrue(ChangedComponent('test').isOutOfDate())
+  def test_isOutOfDate_on_multiple_Components_returns_True_if_any_hasChanged_on_leaf_returns_True(self):
+    class NonLeafComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def hasChanged(self):
+        self.fail("Component.IsOutOfDate called hasChanged on non-leaf element")
+    class LeafComponent(Component):
+      changed = False
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def hasChanged(self):
+        self.changed = not self.changed
+        return self.changed
+    self.assertTrue( Component( 'test'
+                              , elements=[ NonLeafComponent('NonLeaf-1', elements=[LeafComponent('Leaf-11')])
+                                         , NonLeafComponent('NonLeaf-2', elements=[LeafComponent('Leaf-21')])
+                                         ]
+                              ).isOutOfDate()
+                   )
+  def test_isOutOfDate_on_multiple_Components_returns_False_if_no_hasChanged_on_leaf_returns_True(self):
+    class NonLeafComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def hasChanged(self):
+        self.fail("Component.IsOutOfDate called hasChanged on non-leaf element")
+    class LeafComponent(Component):
+      def __init__(self,name,elements=[],logger=None):
+        super().__init__(name,elements,logger)
+      def hasChanged(self):
+        return False
+    self.assertFalse(Component( 'test'
+                              , elements=[ NonLeafComponent('NonLeaf-1', elements=[LeafComponent('Leaf-11')])
+                                         , NonLeafComponent('NonLeaf-2', elements=[LeafComponent('Leaf-21')])
+                                         ]
+                              ).isOutOfDate()
+                    )
 
 if __name__ == '__main__':
   unittest.main()

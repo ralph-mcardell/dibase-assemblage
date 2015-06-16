@@ -11,10 +11,11 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
+from interfaces import AssemblagePlanBase
 import logging
 import sys
 
-class Blueprint:
+class Blueprint(AssemblagePlanBase):
   '''
   Provide blueprint plans for assemblages.
   Instances can be passed to assemblage.Assemblage constructor to create

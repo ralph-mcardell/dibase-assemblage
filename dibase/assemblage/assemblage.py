@@ -10,7 +10,9 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-class Assemblage:
+from interfaces import AssemblageBase
+
+class Assemblage(AssemblageBase):
   '''
   A collection of top level elements, usually assemblage.Component (or
   derivative) objects, to which actions (strings) can be applied.
@@ -58,6 +60,20 @@ class Assemblage:
     '''
     self._log = plan.logger()
     self.elements = plan.topLevelElements()
+
+  def logger(self):
+    '''
+    Returns the assemblage logging.Logger object, provided by the plan object
+    passed to Assemblage.__init__
+    '''
+    return self.logger
+
+  def digestCache(self):
+    '''
+    ##stub -- TBD##
+    Returns a digest cache object.
+    '''
+    return None
 
   def apply(self, action):
     '''
