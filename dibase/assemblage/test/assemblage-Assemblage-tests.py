@@ -12,6 +12,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if parent_dir not in sys.path:
   sys.path.insert(0, parent_dir)
 from assemblage import Assemblage
+from interfaces import AssemblagePlanBase,DigestCacheBase
 
 class Component:
   def apply(self, action):
@@ -32,7 +33,13 @@ class NoteLastAppliedAction:
 class NotApplicable:
   pass
 
-class Blueprint: # 'mock' Blueprint type
+class DigestCache(DigestCacheBase):
+  def updateIfDifferent(self, element):
+    pass
+  def writeBack(self):
+    pass
+
+class Blueprint(AssemblagePlanBase): # 'mock' Blueprint type
   def __init__(self, components=[]):
     self.components = components
     self.stringstream = io.StringIO()
@@ -40,10 +47,13 @@ class Blueprint: # 'mock' Blueprint type
     loghdr.setLevel(logging.INFO)
     formatter = logging.Formatter('%(levelname)s: %(message)s')
     loghdr.setFormatter(formatter)
-    self._log = logging.getLogger('.'.join([__name__, "test_apply_action_to_Assemblage_from_empty_blueprint_logs_informational_message"]))
+    self._log = logging.getLogger('.'.join([__name__, "assemblage_Assemblage_tests.Blueprint"]))
     self._log.addHandler(loghdr)
+    self._digestCache = DigestCache()
   def logger(self):
     return self._log
+  def digestCache(self):
+    return self._digestCache
   def logContents(self):
     return self.stringstream.getvalue()
   def topLevelElements(self):
@@ -119,9 +129,9 @@ class TestAssemblageAssemblage(unittest.TestCase):
     for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,"anotherAction")
   def test_can_call_logger_method_ok(self):
-    Assemblage(Blueprint([Component()])).logger()
+    self.assertIsInstance(Assemblage(Blueprint([Component()])).logger(), logging.Logger)
   def test_can_call_digestCache_method_ok(self):
-    Assemblage(Blueprint([Component()])).digestCache()
+    self.assertIsInstance(Assemblage(Blueprint([Component()])).digestCache(), DigestCache)
 
 if __name__ == '__main__':
   unittest.main()

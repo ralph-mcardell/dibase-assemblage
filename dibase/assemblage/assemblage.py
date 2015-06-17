@@ -59,6 +59,7 @@ class Assemblage(AssemblageBase):
     The plan parameter's requirements are met by assemblage.Blueprint objects.
     '''
     self.__logger = plan.logger()
+    self.__digest_cache = plan.digestCache()
     self.__elements = plan.topLevelElements()
 
   def logger(self):
@@ -73,7 +74,7 @@ class Assemblage(AssemblageBase):
     ##stub -- TBD##
     Returns a digest cache object.
     '''
-    return None
+    return self.__digest_cache
 
   def apply(self, action):
     '''
