@@ -40,11 +40,15 @@ class someModuleScopeAction:
   def afterElementsActions(cls,element):
     cls.after = True
 
-class NullDigestCache(DigestCacheBase):
+class SpoofDigestCache(DigestCacheBase):
+  def __init__(self):
+    self.updateIfDifferentCount = 0
+    self.writeBackCount = 0
   def updateIfDifferent(self, element):
-    pass
+    self.updateIfDifferentCount = self.updateIfDifferentCount + 1
+    return False
   def writeBack(self):
-    pass
+    self.writeBackCount = self.writeBackCount + 1
 
 class NullAssemblage(AssemblageBase):
   def logger(self):
@@ -55,11 +59,13 @@ class LoggingAssemblage(NullAssemblage):
   def logger(self):
     return logging.getLogger()
 class DigestCacheAssemblage(NullAssemblage):
+  def __init__(self):
+    self.cache = SpoofDigestCache()
   def digestCache(self):
-    return NullDigestCache()
-class LoggingDigestCacheAssemblage(LoggingAssemblage):
-  def digestCache(self):
-    return NullDigestCache()
+    return self.cache
+class LoggingDigestCacheAssemblage(DigestCacheAssemblage):
+  def logger(self):
+    return logging.getLogger()
 
 class TestAssemblageComponent(unittest.TestCase):
   log_level = logging.INFO 
@@ -449,8 +455,10 @@ class TestAssemblageComponent(unittest.TestCase):
       def digest(self):
         return b'Digesting'
     self.assertEqual(DigestingComponent('test', LoggingAssemblage()).digest(),b'Digesting')
-  def test_hasChanged_returns_False(self):
-    self.assertFalse(Component('test', LoggingDigestCacheAssemblage()).hasChanged())
+  def test_hasChanged_returns_result_of_calling_assemblage_digestCache_updateIfDifferent(self):
+    assm = LoggingDigestCacheAssemblage()
+    self.assertFalse(Component('test', assm).hasChanged())
+    self.assertEqual(assm.digestCache().updateIfDifferentCount,1)
   def test_overridden_hasChanged_returns_override_result(self):
     class ChangedComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
