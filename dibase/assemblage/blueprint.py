@@ -102,6 +102,7 @@ class Blueprint(AssemblagePlanBase):
     Initialise an empty Blueprint object having no logger or elements.
     '''
     self.__log = None
+    self.__digest_cache = None
     self.__element_specs_by_group = {}
     self.__element_specs_by_name = {}
     self.__non_root_elements = set()
@@ -136,6 +137,20 @@ class Blueprint(AssemblagePlanBase):
     logger object currently associated with a Blueprint object.
     '''
     self.__log = logger
+
+  def setDigestCache(self, digest_cache):
+    '''
+    Set a value for the assemblage.interfaces.DigestCacheBase compatible
+    element resource digest cache used to support resource change detection.
+    '''
+    self.__digest_cache = digest_cache
+
+  def digestCache(self):
+    '''
+    Return the value of the previously set assemblage.interfaces.DigestCacheBase
+    compatible object.
+    '''
+    return self.__digest_cache
 
   def topLevelElements(self):
     '''

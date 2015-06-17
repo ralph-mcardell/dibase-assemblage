@@ -13,6 +13,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if parent_dir not in sys.path:
   sys.path.insert(0, parent_dir)
 from blueprint import Blueprint
+from interfaces import DigestCacheBase
 
 class TestComponent:
   def __init__(self, name, elements, logger, **kwargs):
@@ -66,6 +67,16 @@ class TestAssemblageBlueprint(unittest.TestCase):
     self.assertTrue(blueprintLoggerWrapper(b, self.log_output).isEnabledFor(logging.INFO))
     blueprintLoggerWrapper(b, self.log_output).info("MULTIPLE DEFAULT LOGGER HANDLERS TEST")
     self.assertEqual(self.log_output.getvalue().count('\n'), 1)
+  def test_setDigestCache_object_returned_by_digestCache(self):
+    class DigestCache(DigestCacheBase):
+      def updateIfDifferent(self, element):
+        pass
+      def writeBack(self):
+        pass
+    b = Blueprint()
+    dg = DigestCache()
+    b.setDigestCache(dg)
+    self.assertIs(b.digestCache(), dg)
   def test_topLevelElements_returned_value_is_convertible_to_False_if_no_elements_added(self):
     self.assertFalse(Blueprint().topLevelElements())
   def test_topLevelElements_returns_properly_initialised_element_if_one_added(self):
