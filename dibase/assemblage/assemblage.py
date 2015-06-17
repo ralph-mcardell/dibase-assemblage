@@ -41,7 +41,7 @@ class Assemblage(AssemblageBase):
     if hasattr(object, 'apply') and callable(getattr(object, 'apply')):
       object.apply(action)
     else:
-      self._log.warning("Assemblage element has no 'apply' method (object=%(e)s)." % {'e':object})
+      self.__logger.warning("Assemblage element has no 'apply' method (object=%(e)s)." % {'e':object})
 
   def __init__(self, plan):
     '''
@@ -58,15 +58,15 @@ class Assemblage(AssemblageBase):
         as provided by assemblage.Component and derivatives.
     The plan parameter's requirements are met by assemblage.Blueprint objects.
     '''
-    self._log = plan.logger()
-    self.elements = plan.topLevelElements()
+    self.__logger = plan.logger()
+    self.__elements = plan.topLevelElements()
 
   def logger(self):
     '''
     Returns the assemblage logging.Logger object, provided by the plan object
     passed to Assemblage.__init__
     '''
-    return self.logger
+    return self.__logger
 
   def digestCache(self):
     '''
@@ -90,11 +90,11 @@ class Assemblage(AssemblageBase):
     A warning is also logged if the elements attribute evaluates to False,
     i.e. is False, None, or an empty sequence, etc.
     '''
-    if self.elements:
-      if Assemblage.isiterable(self.elements):
-        for e in self.elements:
+    if self.__elements:
+      if Assemblage.isiterable(self.__elements):
+        for e in self.__elements:
           self.__apply(e, action)
       else:
-          self.__apply(self.elements, action)
+          self.__apply(self.__elements, action)
     else:
-      self._log.warning("Assemblage is empty - no component elements to apply action to.")
+      self.__logger.warning("Assemblage is empty - no component elements to apply action to.")
