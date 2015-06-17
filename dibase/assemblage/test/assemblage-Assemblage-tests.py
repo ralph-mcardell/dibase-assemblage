@@ -118,6 +118,10 @@ class TestAssemblageAssemblage(unittest.TestCase):
     Assemblage(bouter).apply("anotherAction")    
     for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,"anotherAction")
+  def test_can_call_logger_method_ok(self):
+    Assemblage(Blueprint([Component()])).logger()
+  def test_can_call_digestCache_method_ok(self):
+    Assemblage(Blueprint([Component()])).digestCache()
 
 if __name__ == '__main__':
   unittest.main()
