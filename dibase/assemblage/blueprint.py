@@ -152,15 +152,16 @@ class Blueprint(AssemblagePlanBase):
     '''
     return self.__digest_cache
 
-  def topLevelElements(self):
+  def topLevelElements(self, assemblage):
     '''
     Returns a list of top level root elements to which actions may be applied.
     The list might be empty. Top level elements are each roots of an acyclic 
     network of elements - that is elements may share child elements, but a
-    child element cannot have an ancestor as a child.
+    child element cannot have an ancestor as a child. The assemblage parameter
+    is passed to all elements constructed as the assemblage argument.
     '''
 
-    def add_element_from_specification(specification, elements, seen_elements):
+    def add_element_from_specification(specification, assemblage, elements, seen_elements):
       '''
       Internal helper method for topLevelElememnts. Creates an element. 
       First recursively creates any of its (sub-)elements that do not yet exist.
@@ -181,19 +182,19 @@ class Blueprint(AssemblagePlanBase):
           subelements.append(elements[subname])
         else: # element not created yet - go make it
           if subname in self.__element_specs_by_name:
-            add_element_from_specification(self.__element_specs_by_name[subname], elements, seen_elements)
+            add_element_from_specification(self.__element_specs_by_name[subname], assemblage, elements, seen_elements)
             subelements.append(elements[subname])
           else:
             raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
       elements[specification.name] = \
-        (specification.kind(name=specification.name,elements=subelements,logger=specification.logger,**specification.args))
+        (specification.kind(name=specification.name,assemblage=assemblage,elements=subelements,logger=specification.logger,**specification.args))
       seen_elements.remove(specification.name)
     elements = {}
     for es in self.__element_specs_by_name.values():
       if not es.logger:
         es.logger = self.logger()
       if es.name not in elements.keys():
-        add_element_from_specification(es, elements, seen_elements=[])
+        add_element_from_specification(es, assemblage, elements, seen_elements=[])
     tlelements = []
     for ename, element in elements.items():
       if ename not in self.__non_root_elements:
