@@ -33,13 +33,17 @@ class Component(ElementBase):
   a valid Python identifier) to the component. The action is used to determine
   what action steps to perform and what those steps are.
   '''
-  def __init__(self, name, elements=[], logger=None):
+  def __init__(self, name, assemblage, elements=[], logger=None):
     self.__name = name
+    self.__assemblage = assemblage
     self.__elements = elements
     if type(logger) is logging.Logger:
       self.__logger = logger  
-    else:
+    elif type(logger) is str:
       self.__logger = logging.getLogger(logger)
+    else:
+      self.__logger = assemblage.logger()
+    
     self.__debug("Created %s"%repr(self))
   def __repr__(self):
     '''
@@ -291,7 +295,7 @@ class Component(ElementBase):
     return result
   def hasChanged(self):
     '''
-    Always returns False as Component has no associated resource which
-    could have changed.
+    Passes self onto the assemblage digest cache which compares
+    current Component.digest() value with the previous cached/stored value.
     '''
-    return False
+    return self.__assemblage.digestCache().updateIfDifferent(self)

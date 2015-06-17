@@ -13,6 +13,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if parent_dir not in sys.path:
   sys.path.insert(0, parent_dir)
 from component import Component
+from interfaces import AssemblageBase, DigestCacheBase
 
 class someModuleScopeAction:
   query_before = False
@@ -38,6 +39,27 @@ class someModuleScopeAction:
   @classmethod
   def afterElementsActions(cls,element):
     cls.after = True
+
+class NullDigestCache(DigestCacheBase):
+  def updateIfDifferent(self, element):
+    pass
+  def writeBack(self):
+    pass
+
+class NullAssemblage(AssemblageBase):
+  def logger(self):
+    pass
+  def digestCache(self):
+    pass
+class LoggingAssemblage(NullAssemblage):
+  def logger(self):
+    return logging.getLogger()
+class DigestCacheAssemblage(NullAssemblage):
+  def digestCache(self):
+    return NullDigestCache()
+class LoggingDigestCacheAssemblage(LoggingAssemblage):
+  def digestCache(self):
+    return NullDigestCache()
 
 class TestAssemblageComponent(unittest.TestCase):
   log_level = logging.INFO 
@@ -68,54 +90,54 @@ class TestAssemblageComponent(unittest.TestCase):
     self.clearLog();
 
   def test_basic_component_compares_equal_to_name_can_write_to_logger_and_has_no_elements(self):
-    c = Component("test")
+    c = Component("test", LoggingAssemblage())
     self.assertEqual(c, "test")
     self.assertNotEqual(repr(c).find('elements=[])'),-1)
   def test_basic_component_string_representation_is_name(self):
-    c = Component("test")
-    self.assertEqual(str(c), "test")
+    c = Component("test", LoggingAssemblage())
+    self.assertEqual(str(c), "test", LoggingAssemblage())
   def test_equals_between_two_components(self):
-    c = Component('CCC')
-    d = Component('DDDD')
-    c2 = Component('CCC')
+    c = Component('CCC', LoggingAssemblage())
+    d = Component('DDDD', LoggingAssemblage())
+    c2 = Component('CCC', LoggingAssemblage())
     self.assertTrue(c==c2)
     self.assertTrue(c==c)
     self.assertFalse(c==d)
   def test_equals_between_component_and_string(self):
-    c = Component('CCC')
+    c = Component('CCC', LoggingAssemblage())
     cstr = 'CCC'
-    d = Component('DDDD')
+    d = Component('DDDD', LoggingAssemblage())
     self.assertTrue(c==cstr)
     self.assertTrue(cstr==c)
     self.assertFalse(d==cstr)
     self.assertFalse(cstr==d)
   def test_not_equals_between_two_components(self):
-    c = Component('cccccccc')
-    d = Component('DDDD')
-    c2 = Component('cccccccc')
+    c = Component('cccccccc', LoggingAssemblage())
+    d = Component('DDDD', LoggingAssemblage())
+    c2 = Component('cccccccc', LoggingAssemblage())
     self.assertFalse(c!=c2)
     self.assertFalse(c!=c)
     self.assertTrue(c!=d)
   def test_not_equals_between_component_and_string(self):
-    c = Component('CcCcC')
+    c = Component('CcCcC', LoggingAssemblage())
     cstr = 'CcCcC'
-    d = Component('DDDD')
+    d = Component('DDDD', LoggingAssemblage())
     self.assertFalse(c!=cstr)
     self.assertFalse(cstr!=c)
     self.assertTrue(d!=cstr)
     self.assertTrue(cstr!=d)
   def test_less_than_between_two_components(self):
-    c = Component('CCC')
-    d = Component('DDD')
-    c2 = Component('CCC')
+    c = Component('CCC', LoggingAssemblage())
+    d = Component('DDD', LoggingAssemblage())
+    c2 = Component('CCC', LoggingAssemblage())
     self.assertFalse(c<c2)
     self.assertFalse(c<c)
     self.assertFalse(d<c)
     self.assertTrue(c<d)
   def test_less_than_between_component_and_string(self):
-    c = Component('ccc')
+    c = Component('ccc', LoggingAssemblage())
     cstr = 'ccc'
-    d = Component('ddd')
+    d = Component('ddd', LoggingAssemblage())
     dstr = 'ddd'
     self.assertFalse(c<cstr)
     self.assertFalse(cstr<c)
@@ -124,17 +146,17 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(cstr<d)
     self.assertTrue(c<dstr)
   def test_less_than_or_equal_between_two_components(self):
-    c = Component('CCC')
-    d = Component('DDD')
-    c2 = Component('CCC')
+    c = Component('CCC', LoggingAssemblage())
+    d = Component('DDD', LoggingAssemblage())
+    c2 = Component('CCC', LoggingAssemblage())
     self.assertTrue(c<=c2)
     self.assertTrue(c<=c)
     self.assertFalse(d<=c)
     self.assertTrue(c<=d)
   def test_less_than_or_equal_between_component_and_string(self):
-    c = Component('ccc')
+    c = Component('ccc', LoggingAssemblage())
     cstr = 'ccc'
-    d = Component('ddd')
+    d = Component('ddd', LoggingAssemblage())
     dstr = 'ddd'
     self.assertTrue(c<=cstr)
     self.assertTrue(cstr<=c)
@@ -143,17 +165,17 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(cstr<=d)
     self.assertTrue(c<=dstr)
   def test_greater_than_between_two_components(self):
-    c = Component('CCC')
-    d = Component('DDD')
-    c2 = Component('CCC')
+    c = Component('CCC', LoggingAssemblage())
+    d = Component('DDD', LoggingAssemblage())
+    c2 = Component('CCC', LoggingAssemblage())
     self.assertFalse(c>c2)
     self.assertFalse(c>c)
     self.assertTrue(d>c)
     self.assertFalse(c>d)
   def test_greater_than_between_component_and_string(self):
-    c = Component('ccc')
+    c = Component('ccc', LoggingAssemblage())
     cstr = 'ccc'
-    d = Component('ddd')
+    d = Component('ddd', LoggingAssemblage())
     dstr = 'ddd'
     self.assertFalse(c>cstr)
     self.assertFalse(cstr>c)
@@ -162,17 +184,17 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(cstr>d)
     self.assertFalse(c>dstr)
   def test_greater_than_or_equal_between_two_components(self):
-    c = Component('CCC')
-    d = Component('DDD')
-    c2 = Component('CCC')
+    c = Component('CCC', LoggingAssemblage())
+    d = Component('DDD', LoggingAssemblage())
+    c2 = Component('CCC', LoggingAssemblage())
     self.assertTrue(c>=c2)
     self.assertTrue(c>=c)
     self.assertTrue(d>=c)
     self.assertFalse(c>=d)
   def test_greater_than_or_equal_between_component_and_string(self):
-    c = Component('ccc')
+    c = Component('ccc', LoggingAssemblage())
     cstr = 'ccc'
-    d = Component('ddd')
+    d = Component('ddd', LoggingAssemblage())
     dstr = 'ddd'
     self.assertTrue(c>=cstr)
     self.assertTrue(cstr>=c)
@@ -183,8 +205,8 @@ class TestAssemblageComponent(unittest.TestCase):
   def test_Component_logs_to_logger_passed_in_construction(self):
     self.logger.setLevel(logging.DEBUG)
     with self.assertLogs(self.logger,logging.DEBUG):
-      Component("test", logger=self.logger)
-    Component("test", logger=self.logger)
+      Component("test", NullAssemblage(), logger=self.logger)
+    Component("test", NullAssemblage(), logger=self.logger)
     print("\ntest_Component_logs_to_logger_passed_in_construction"
           "\n  INFORMATION: Component construction logged:\n    ",end='')
     self.show_log = True
@@ -192,19 +214,20 @@ class TestAssemblageComponent(unittest.TestCase):
   def test_calling_apply_with_unsupported_action_causes_no_errors(self):
 #    self.show_log = True
     Component ( 'test-root'
-              , elements=[Component('testchild', logger=self.logger)]
+              , assemblage=NullAssemblage()  
+              , elements=[Component('testchild', NullAssemblage(), logger=self.logger)]
               , logger=self.logger
               ).apply('noSuchAction')
   def test_apply_does_no_action_steps_methods_if_query_action_methods_return_True_for_subclass_methods(self):
     class NeverDoAnyProcessingComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
+      def __init__(self,name,assm,elements=[],logger=None):
         self.query_before = False
         self.query_after = False
         self.query_elements = False
         self.before = False
         self.after = False
         self.apply_called = False
-        super().__init__(name,elements,logger)
+        super().__init__(name,assm,elements,logger)
       def someAction_queryDoBeforeElementsActions(self):
         self.query_before = True
         return False
@@ -222,8 +245,8 @@ class TestAssemblageComponent(unittest.TestCase):
         self.apply_called = True
         super().apply(action)
 #    self.show_log = True
-    child = NeverDoAnyProcessingComponent('child', logger=self.logger)
-    root = NeverDoAnyProcessingComponent('root',elements=[child], logger=self.logger)
+    child = NeverDoAnyProcessingComponent('child', NullAssemblage(), logger=self.logger)
+    root = NeverDoAnyProcessingComponent('root', NullAssemblage(), elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
@@ -239,14 +262,14 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(child.query_elements)
   def test_apply_does_action_steps_methods_if_query_action_methods_return_True_for_subclass_methods(self):
     class AlwaysDoAllComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
+      def __init__(self,name,assm,elements=[],logger=None):
         self.query_before = False
         self.query_after = False
         self.query_elements = False
         self.before = False
         self.after = False
         self.apply_called = False
-        super().__init__(name,elements,logger)
+        super().__init__(name,assm,elements,logger)
       def someAction_queryDoBeforeElementsActions(self):
         self.query_before = True
         return True
@@ -264,8 +287,8 @@ class TestAssemblageComponent(unittest.TestCase):
         self.apply_called = True
         super().apply(action)
 #    self.show_log = True
-    child = AlwaysDoAllComponent('child', logger=self.logger)
-    root = AlwaysDoAllComponent('root',elements=[child], logger=self.logger)
+    child = AlwaysDoAllComponent('child', NullAssemblage(), logger=self.logger)
+    root = AlwaysDoAllComponent('root', NullAssemblage(), elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
@@ -305,8 +328,8 @@ class TestAssemblageComponent(unittest.TestCase):
       def afterElementsActions(cls,element):
         cls.after = True
 #    self.show_log = True
-    child = Component('child', logger=self.logger)
-    root = Component('root',elements=[child], logger=self.logger)
+    child = Component('child', NullAssemblage(), logger=self.logger)
+    root = Component('root', NullAssemblage(), elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(someAction.query_before)
     self.assertTrue(someAction.query_after)
@@ -339,8 +362,8 @@ class TestAssemblageComponent(unittest.TestCase):
       def afterElementsActions(cls,element):
         cls.after = True
 #    self.show_log = True
-    child = Component('child', logger=self.logger)
-    root = Component('root',elements=[child], logger=self.logger)
+    child = Component('child', NullAssemblage(), logger=self.logger)
+    root = Component('root', NullAssemblage(), elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(someAction.query_before)
     self.assertTrue(someAction.query_after)
@@ -373,8 +396,8 @@ class TestAssemblageComponent(unittest.TestCase):
       cls.after = True
   def test_apply_finds_action_class_defined_in_a_callers_outer_scope(self):
 #    self.show_log = True
-    child = Component('child', logger=self.logger)
-    root = Component('root',elements=[child], logger=self.logger)
+    child = Component('child', NullAssemblage(), logger=self.logger)
+    root = Component('root', NullAssemblage(), elements=[child], logger=self.logger)
     root.apply('someClassScopeAction')
     self.assertTrue(self.someClassScopeAction.query_before)
     self.assertTrue(self.someClassScopeAction.query_after)
@@ -383,8 +406,8 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(self.someClassScopeAction.after)
   def test_apply_finds_action_class_defined_in_callers_module_scope(self):
 #    self.show_log = True
-    child = Component('child', logger=self.logger)
-    root = Component('root',elements=[child], logger=self.logger)
+    child = Component('child', NullAssemblage(), logger=self.logger)
+    root = Component('root', NullAssemblage(), elements=[child], logger=self.logger)
     root.apply('someModuleScopeAction')
     self.assertTrue(someModuleScopeAction.query_before)
     self.assertTrue(someModuleScopeAction.query_after)
@@ -394,11 +417,11 @@ class TestAssemblageComponent(unittest.TestCase):
   def test_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references(self):
 #    self.show_log = True
     grandchild2_children = []
-    grandchild1 = Component('grandchild1', logger=self.logger)
-    child1 = Component('child1', elements=[grandchild1], logger=self.logger)
-    grandchild2 = Component('grandchild2', elements=grandchild2_children, logger=self.logger)
-    child2 = Component('child2', elements=[grandchild2], logger=self.logger)
-    root = Component('root',elements=[child1,child2], logger=self.logger)
+    grandchild1 = Component('grandchild1', NullAssemblage(), logger=self.logger)
+    child1 = Component('child1', NullAssemblage(), elements=[grandchild1], logger=self.logger)
+    grandchild2 = Component('grandchild2', NullAssemblage(), elements=grandchild2_children, logger=self.logger)
+    child2 = Component('child2', NullAssemblage(), elements=[grandchild2], logger=self.logger)
+    root = Component('root', NullAssemblage(), elements=[child1,child2], logger=self.logger)
     grandchild2_children.append(root) # Ooops!
     with self.assertRaises(RuntimeError):
       root.apply('someModuleScopeAction')
@@ -409,74 +432,84 @@ class TestAssemblageComponent(unittest.TestCase):
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
 
   def test_doesNotExist_returns_True(self):
-    self.assertTrue(Component('test').doesNotExist())
+    self.assertTrue(Component('test', LoggingAssemblage()).doesNotExist())
   def test_overrident_doesNotExist_returns_override_result(self):
     class ExistingComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def doesNotExist(self):
         return False
-    self.assertFalse(ExistingComponent('test').doesNotExist())
+    self.assertFalse(ExistingComponent('test', LoggingAssemblage()).doesNotExist())
   def test_digest_returns_bytes_Componen(self):
-    self.assertEqual(Component('test').digest(),b'Componen')
+    self.assertEqual(Component('test', LoggingAssemblage()).digest(),b'Componen')
   def test_overridden_digest_returns_override_result(self):
     class DigestingComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def digest(self):
         return b'Digesting'
-    self.assertEqual(DigestingComponent('test').digest(),b'Digesting')
+    self.assertEqual(DigestingComponent('test', LoggingAssemblage()).digest(),b'Digesting')
   def test_hasChanged_returns_False(self):
-    self.assertFalse(Component('test').hasChanged())
+    self.assertFalse(Component('test', LoggingDigestCacheAssemblage()).hasChanged())
   def test_overridden_hasChanged_returns_override_result(self):
     class ChangedComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         return True
-    self.assertTrue(ChangedComponent('test').hasChanged())
+    self.assertTrue(ChangedComponent('test', LoggingAssemblage()).hasChanged())
   def test_isOutOfDate_on_single_leaf_Component_returns_False(self):
-    self.assertFalse(Component('test').isOutOfDate())
+    self.assertFalse(Component('test', LoggingDigestCacheAssemblage()).isOutOfDate())
   def test_isOutOfDate_on_single_leaf_Component_with_overridden_hasChanged_returns_hasChanged_override_result(self):
     class ChangedComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         return True
-    self.assertTrue(ChangedComponent('test').isOutOfDate())
+    self.assertTrue(ChangedComponent('test', LoggingAssemblage()).isOutOfDate())
   def test_isOutOfDate_on_multiple_Components_returns_True_if_any_hasChanged_on_leaf_returns_True(self):
     class NonLeafComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         self.fail("Component.IsOutOfDate called hasChanged on non-leaf element")
     class LeafComponent(Component):
       changed = False
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         self.changed = not self.changed
         return self.changed
     self.assertTrue( Component( 'test'
-                              , elements=[ NonLeafComponent('NonLeaf-1', elements=[LeafComponent('Leaf-11')])
-                                         , NonLeafComponent('NonLeaf-2', elements=[LeafComponent('Leaf-21')])
+                              , LoggingAssemblage()
+                              , elements=[ NonLeafComponent('NonLeaf-1', LoggingAssemblage()
+                                                           , elements=[LeafComponent('Leaf-11', LoggingAssemblage())]
+                                                           )
+                                         , NonLeafComponent('NonLeaf-2', LoggingAssemblage()
+                                                           , elements=[LeafComponent('Leaf-21', LoggingAssemblage())]
+                                                           )
                                          ]
                               ).isOutOfDate()
                    )
   def test_isOutOfDate_on_multiple_Components_returns_False_if_no_hasChanged_on_leaf_returns_True(self):
     class NonLeafComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         self.fail("Component.IsOutOfDate called hasChanged on non-leaf element")
     class LeafComponent(Component):
-      def __init__(self,name,elements=[],logger=None):
-        super().__init__(name,elements,logger)
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         return False
     self.assertFalse(Component( 'test'
-                              , elements=[ NonLeafComponent('NonLeaf-1', elements=[LeafComponent('Leaf-11')])
-                                         , NonLeafComponent('NonLeaf-2', elements=[LeafComponent('Leaf-21')])
+                              , LoggingAssemblage()
+                              , elements=[ NonLeafComponent('NonLeaf-1', LoggingAssemblage()
+                                                           , elements=[LeafComponent('Leaf-11', LoggingAssemblage())]
+                                                           )
+                                         , NonLeafComponent('NonLeaf-2', LoggingAssemblage()
+                                                           , elements=[LeafComponent('Leaf-21', LoggingAssemblage())]
+                                                           )
                                          ]
                               ).isOutOfDate()
                     )
