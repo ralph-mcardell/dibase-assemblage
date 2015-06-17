@@ -60,7 +60,7 @@ class Assemblage(AssemblageBase):
     '''
     self.__logger = plan.logger()
     self.__digest_cache = plan.digestCache()
-    self.__elements = plan.topLevelElements()
+    self.__elements = plan.topLevelElements(self)
 
   def logger(self):
     '''
