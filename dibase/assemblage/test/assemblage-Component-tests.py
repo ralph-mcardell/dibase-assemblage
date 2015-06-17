@@ -56,16 +56,21 @@ class NullAssemblage(AssemblageBase):
   def digestCache(self):
     pass
 class LoggingAssemblage(NullAssemblage):
+  def __init__(self, logger=None):
+    self.log = logger
   def logger(self):
-    return logging.getLogger()
+    return self.log if self.log else logging.getLogger()
 class DigestCacheAssemblage(NullAssemblage):
   def __init__(self):
     self.cache = SpoofDigestCache()
   def digestCache(self):
     return self.cache
 class LoggingDigestCacheAssemblage(DigestCacheAssemblage):
+  def __init__(self, logger=None):
+    self.log = logger
+    super().__init__()
   def logger(self):
-    return logging.getLogger()
+    return self.log if self.log else logging.getLogger()
 
 class TestAssemblageComponent(unittest.TestCase):
   log_level = logging.INFO 
@@ -216,6 +221,16 @@ class TestAssemblageComponent(unittest.TestCase):
     print("\ntest_Component_logs_to_logger_passed_in_construction"
           "\n  INFORMATION: Component construction logged:\n    ",end='')
     self.show_log = True
+    self.logger.setLevel(self.log_level)
+  def test_Component_logs_to_logger_passed_in_construction_by_name(self):
+    self.logger.setLevel(logging.DEBUG)
+    with self.assertLogs(self.logger,logging.DEBUG):
+      Component("test", NullAssemblage(), logger="TestAssemblageComponent")
+    self.logger.setLevel(self.log_level)
+  def test_Component_logs_to_passed_assemblage_logger_if_no_logger_argument_given(self):
+    self.logger.setLevel(logging.DEBUG)
+    with self.assertLogs(self.logger,logging.DEBUG):
+      Component("test", LoggingAssemblage(self.logger))
     self.logger.setLevel(self.log_level)
   def test_calling_apply_with_unsupported_action_causes_no_errors(self):
 #    self.show_log = True
