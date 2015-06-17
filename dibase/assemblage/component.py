@@ -65,10 +65,13 @@ class Component(ElementBase):
   def __ge__(self, other):
     return str(self) >= str(other)
 
+  def __log_message(self, message):
+    callerframe = inspect.getouterframes(inspect.currentframe(),3)
+    return " [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message}
+    
   def __debug(self, message):
     if self.__logger.isEnabledFor(logging.DEBUG):
-      callerframe = inspect.getouterframes(inspect.currentframe(),2)
-      self.__logger.debug(" [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message})
+      self.__logger.debug(self.__log_message(message))
   
   def __get_class_in_callers_scope(self, name, start_frame=2):
     def get_module_from_frame(frame):
@@ -180,8 +183,10 @@ class Component(ElementBase):
       resolve_and_call_function(action, 'afterElementsActions', callers_frame)
 
     if self in seen_components:
-      raise RuntimeError("Circular reference: already tried to apply action '%(a)s' to element '%(e)s'"
-                        % {'e':str(self), 'a':action}
+      raise RuntimeError( self.__log_message( "Circular reference: already tried to "
+                                              "apply action '%(a)s' to element '%(e)s'"
+                                              % {'e':str(self), 'a':action}
+                                            )
                         )
     seen_components.append(self)
     self.__debug("apply('%s): Querying do before actions" % action)

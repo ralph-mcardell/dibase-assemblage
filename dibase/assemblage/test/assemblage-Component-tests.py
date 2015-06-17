@@ -391,6 +391,23 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(someModuleScopeAction.query_elements)
     self.assertTrue(someModuleScopeAction.before)
     self.assertTrue(someModuleScopeAction.after)
+  def test_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references(self):
+#    self.show_log = True
+    grandchild2_children = []
+    grandchild1 = Component('grandchild1', logger=self.logger)
+    child1 = Component('child1', elements=[grandchild1], logger=self.logger)
+    grandchild2 = Component('grandchild2', elements=grandchild2_children, logger=self.logger)
+    child2 = Component('child2', elements=[grandchild2], logger=self.logger)
+    root = Component('root',elements=[child1,child2], logger=self.logger)
+    grandchild2_children.append(root) # Ooops!
+    with self.assertRaises(RuntimeError):
+      root.apply('someModuleScopeAction')
+    try:
+      root.apply('someModuleScopeAction')
+    except RuntimeError as e:
+      print("\ntest_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references\n"
+            "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
+
   def test_doesNotExist_returns_True(self):
     self.assertTrue(Component('test').doesNotExist())
   def test_overrident_doesNotExist_returns_override_result(self):
