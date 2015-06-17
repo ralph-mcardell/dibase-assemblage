@@ -46,6 +46,14 @@ class AssemblagePlanBase(metaclass=ABCMeta):
     '''
     pass
   @abstractmethod
+  def digestCache(self):
+    '''
+    Returns an object that is of the abstract type DigestCacheBase. Used to
+    access the cache of element digests that provides element resource change
+    detection support
+    '''
+    pass
+  @abstractmethod
   def topLevelElements(self):
     '''
     Returns a single or iterable sequence of top level root elements that form
