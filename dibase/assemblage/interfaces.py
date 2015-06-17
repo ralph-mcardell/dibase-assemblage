@@ -95,3 +95,41 @@ class ElementBase(metaclass=ABCMeta):
     resource is out of date with respect to its child elements.
     '''
     pass
+  @abstractmethod
+  def __str__(self):
+    '''
+    Returns a string value of the element uniquely identifying it with an
+    assembly and the digest store it uses - even across executions.
+    '''
+    pass
+
+class DigestCacheBase(metaclass=ABCMeta):
+  '''
+  Digest caches are intended to cache digests of elements' associated resources.
+  It is expected that practical implementations will work in conjunction with
+  some sort of persistent digest store from which element digests can be loaded
+  and updated digests written back. The write back cache pattern was chosen as
+  it is likely that if action steps to create a resource fail then it may not
+  be appropriate to write back updated resource digests that triggered the
+  action steps. It also allows grouping of update writes so may allow for
+  better performance in some storage implementations.
+  '''
+  @abstractmethod
+  def updateIfDifferent(self, element):
+    '''
+    The element parameter is assumed to adhere to the ElementBase interface.
+    If the element.digest() value differs from the cached value (or stored
+    value if not yet cached) then the cached value is updated and marked as
+    dirty (i.e. will be written back by the cache writeBack method) and True
+    is returned otherwise, the digests compare equal and False is returned.
+    Digest values are associated with the str value of the element
+    parameter. 
+    '''
+    pass
+  @abstractmethod
+  def writeBack(self):
+    '''
+    Write back to any associated digest store the values of dirty (i.e. updated)
+    element digests.
+    '''
+    pass
