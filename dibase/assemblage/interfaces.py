@@ -129,44 +129,15 @@ class DigestCacheBase(metaclass=ABCMeta):
     If the element.digest() value differs from the cached value (or stored
     value if not yet cached) then the cached value is updated and marked as
     dirty (i.e. will be written back by the cache writeBack method) and True
-    is returned. Otherwise, the digests compare equal and False is returned.
-    Digest values should be associated with the str value of the element
-    parameter.
+    is returned otherwise, the digests compare equal and False is returned.
+    Digest values are associated with the str value of the element
+    parameter. 
     '''
     pass
   @abstractmethod
   def writeBack(self):
     '''
     Write back to any associated digest store the values of dirty (i.e. updated)
-    element digests. If successfully written back then the digests should no
-    longer be considered dirty.
-    '''
-    pass
-
-class DigestStoreBase(metaclass=ABCMeta):
-  '''
-  Digest stores are intended to store digests of elements' associated
-  resources to, usually, persistent storage. They allow single digests to be
-  looked up by a key name - intended to be the str value of the element
-  associated with the digest value and to update (or add) a set of new and
-  changed element digest values.
-  '''
-  @abstractmethod
-  def update(self, nameDigestPairs):
-    '''
-    The nameDigestPairs parameter should be a sequence of 
-    (key name string, digest) pair sequences (e.g. tuples). It is intended
-    that digest record for each key name is looked up in the store and if
-    found replaced with the digest value of the (key name,digest) pair.
-    Otherwise a new record is added to the store.
-    '''
-    pass
-  @abstractmethod
-  def retrieveDigest(self, recordName):
-    '''
-    The recordName parameter is intended to be a key name string, commonly a
-    the str value of an assemblage element, for the required digest value to 
-    retrieve and return. If not found a value convertible to False such as
-    None should be returned
+    element digests.
     '''
     pass
