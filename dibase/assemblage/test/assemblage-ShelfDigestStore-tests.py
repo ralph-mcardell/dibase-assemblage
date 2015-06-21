@@ -79,6 +79,6 @@ class TestAssemblageDigestStore(unittest.TestCase):
     for file in glob.glob(''.join([store.defaultPath(),'*'])):
       filecount = filecount + 1
     self.assertNotEqual(filecount,0)
-
+    self.remove_files(store.defaultPath())
 if __name__ == '__main__':
   unittest.main()
