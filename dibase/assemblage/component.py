@@ -41,9 +41,10 @@ class Component(ElementBase):
       self.__logger = logger  
     elif type(logger) is str:
       self.__logger = logging.getLogger(logger)
-    else:
+    elif assemblage.logger():
       self.__logger = assemblage.logger()
-    
+    else:
+      self.__logger = logging.getLogger()
     self.__debug("Created %s"%repr(self))
   def __repr__(self):
     '''
