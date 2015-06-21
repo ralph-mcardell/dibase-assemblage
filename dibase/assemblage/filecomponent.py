@@ -40,13 +40,13 @@ class FileComponent(Component):
     return self.path
   def DoesNotExist(self):
     return not os.path.exists(self.normalisedPath())
-  def digest():
+  def digest(self):
     '''
     Expects the path given by the component's name (str(self)) to exist then
     opens and read the file to create and return its MD5 digest.
     '''
     if self.DoesNotExist():
-      raise RuntimeError("FileComponent.digest: Expected file '%s' to exist"%path)
+      raise RuntimeError("FileComponent.digest: Expected file '%s' to exist"%self.normalisedPath())
     BlockSize = 65536
     hasher = hashlib.md5()
     with open(self.normalisedPath(), 'rb') as file:
