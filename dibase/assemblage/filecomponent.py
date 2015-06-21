@@ -40,7 +40,7 @@ class FileComponent(Component):
     return self.path
   def DoesNotExist(self):
     return not os.path.exists(self.normalisedPath())
-  def digest(self):
+  def digest():
     '''
     Expects the path given by the component's name (str(self)) to exist then
     opens and read the file to create and return its MD5 digest.
