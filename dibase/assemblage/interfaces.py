@@ -27,6 +27,7 @@ class ElementBase(metaclass=ABCMeta):
 
 class AssemblageBase(ElementBase):
   '''
+  Extends ElementBase so may be used as an element of an element.
   Defines methods that are expected in an assemblage by elements (specifically
   the provided assemblage.Component class)
   '''
@@ -75,11 +76,15 @@ class AssemblagePlanBase(metaclass=ABCMeta):
     pass
 
 class ComponentBase(ElementBase):
+  '''
+  Extends ElementBase adding support for attribute access and associated 
+  resource status querying.
+  '''
   @abstractmethod
   def digest(self):
     '''
-    Returns a byte sequence to be used as a fixed length digest of any
-    resources, such as a file, associated with an element.
+    Returns an object that can be persisted and compared that represents a
+    digest of the state of a component's associated resource(s).
     '''
     pass
   @abstractmethod
