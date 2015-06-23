@@ -69,6 +69,19 @@ class Component(ComponentBase):
     return str(self) > str(other)
   def __ge__(self, other):
     return str(self) >= str(other)
+  def elementAttribute(self, id, name, default=AttributeError):
+    if (type(id) is not int) or id<0 or id>=len(self.__elements):
+      if default is AttributeError:
+        raise IndexError( self.__log_message( "id %(i)s is not an integer"
+                                             " or out of range [0,%(e)d]"
+                                              % {'i':str(id)
+                                                , 'e':len(self.__elements)-1}
+                                            )
+                        )
+      else:
+        return default
+    return getattr(self.__elements[id],name) if default is AttributeError\
+            else getattr(self.__elements[id],name,default)
 
   def __log_message(self, message):
     callerframe = inspect.getouterframes(inspect.currentframe(),3)

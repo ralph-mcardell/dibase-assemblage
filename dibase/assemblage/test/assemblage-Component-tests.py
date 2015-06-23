@@ -543,6 +543,60 @@ class TestAssemblageComponent(unittest.TestCase):
                                          ]
                               ).isOutOfDate()
                     )
-
+  def test_elementAttribute_returns_atribute_of_element(self):
+    class ComponentWithAttributes(Component):
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
+        self.an_attribute = 111
+      def callableAttribute(self):
+        return 222
+    c =  Component( 'test'
+                  , LoggingAssemblage()
+                  , elements=[ComponentWithAttributes('attr-1', LoggingAssemblage())]
+                  )
+    self.assertEqual(c.elementAttribute(0,'an_attribute'), 111)
+    self.assertEqual(c.elementAttribute(0,'callableAttribute')(), 222)
+  def test_elementAttribute_raises_for_bad_id_and_no_default(self):
+    c =  Component( 'test'
+                  , LoggingAssemblage()
+                  , elements=[Component('se-1', LoggingAssemblage())]
+                  )
+    with self.assertRaises(LookupError):
+      c.elementAttribute(1,'hasChanged')
+    with self.assertRaises(LookupError):
+      c.elementAttribute(-1,'hasChanged')
+    with self.assertRaises(LookupError):
+      c.elementAttribute('NaN','hasChanged')
+    try:
+      c.elementAttribute(1,'hasChanged')
+    except LookupError as e:
+      print("\ntest_elementAttribute_returns_atribute_of_element\n"
+            "  INFORMATION: LookupError raised with message:\n     '%(e)s'" % {'e':e})
+  def test_elementAttribute_returns_passed_default_value_for_bad_id(self):
+    c =  Component( 'test'
+                  , LoggingAssemblage()
+                  , elements=[Component('se-1', LoggingAssemblage())]
+                  )
+    self.assertIsNone(c.elementAttribute(1,'hasChanged', None))
+    self.assertFalse(c.elementAttribute(-1,'hasChanged', False))
+    self.assertEqual(c.elementAttribute('NaN','hasChanged',23),23)
+  def test_elementAttribute_raises_for_bad_attribute_name_and_no_default(self):
+    c =  Component( 'test'
+                  , LoggingAssemblage()
+                  , elements=[Component('se-1', LoggingAssemblage())]
+                  )
+    with self.assertRaises(AttributeError):
+      c.elementAttribute(0,'nosuchattribute')
+    try:
+      c.elementAttribute(0,'nosuchattribute')
+    except AttributeError as e:
+      print("\ntest_elementAttribute_returns_atribute_of_element\n"
+            "  INFORMATION: AttributeError raised with message:\n     '%(e)s'" % {'e':e})
+  def test_elementAttribute_returns_passed_default_value_for_bad_attribute_name(self):
+    c =  Component( 'test'
+                  , LoggingAssemblage()
+                  , elements=[Component('se-1', LoggingAssemblage())]
+                  )
+    self.assertIsNone(c.elementAttribute(0,'nosuchattribute', None))
 if __name__ == '__main__':
   unittest.main()

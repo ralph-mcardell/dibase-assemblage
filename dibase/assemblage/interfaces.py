@@ -117,6 +117,19 @@ class ComponentBase(ElementBase):
     assembly and the digest store it uses - even across executions.
     '''
     pass
+  @abstractmethod
+  def elementAttribute(self, id, name, default=AttributeError):
+    '''
+    Should return the value of the named attribute of the component's element
+    object given by id - the type of id being dependent on the implementation
+    of component (sub-)element collection. If the id is a valid identifier 
+    for a component element and the string is the name of one of the object’s
+    attributes, the result should be the value of that attribute. If the
+    element or  named attribute does not exist, then default should be
+    returned if provided, otherwise a LookupError (IndexError or KeyError
+    as appropriate) or AttributeError should be raised.
+    '''
+    pass
 
 class DigestCacheBase(metaclass=ABCMeta):
   '''
