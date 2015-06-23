@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 # v3.4+
 """
-Tests for dibase.assemblage.filecomponent.FileComponent
+Tests for dibase.assemblage.filecomponent.FileComponent 
 """
 import unittest
 import tempfile
@@ -43,6 +43,8 @@ class SpoofDigestCache(DigestCacheBase):
     self.dirty = []
 
 class NullAssemblage(AssemblageBase):
+  def apply(self, action):
+    pass
   def logger(self):
     pass
   def digestCache(self):

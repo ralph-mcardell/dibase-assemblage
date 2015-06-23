@@ -12,7 +12,20 @@ License: dual: GPL or BSD.
 
 from abc import ABCMeta, abstractmethod
 
-class AssemblageBase(metaclass=ABCMeta):
+class ElementBase(metaclass=ABCMeta):
+  '''
+  Defines methods required by users of objects representing assemblage elements
+  (the assemblage.Assemblage and assemblage.Component classes for example)
+  '''
+  @abstractmethod
+  def apply(self, action):
+    '''
+    Applies action, generally a string that is a valid Python identifier,
+    to element.
+    '''
+    pass
+
+class AssemblageBase(ElementBase):
   '''
   Defines methods that are expected in an assemblage by elements (specifically
   the provided assemblage.Component class)
@@ -61,18 +74,7 @@ class AssemblagePlanBase(metaclass=ABCMeta):
     '''
     pass
 
-class ElementBase(metaclass=ABCMeta):
-  '''
-  Defines methods required by users of objects representing assemblage elements
-  (the assemblage.Component class for example)
-  '''
-  @abstractmethod
-  def apply(self, action):
-    '''
-    Applies action, generally a string that is a valid Python identifier,
-    to element.
-    '''
-    pass
+class ComponentBase(ElementBase):
   @abstractmethod
   def digest(self):
     '''

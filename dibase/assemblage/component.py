@@ -11,12 +11,12 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from .interfaces import ElementBase
+from .interfaces import ComponentBase
 import logging
 import inspect
 import sys
 
-class Component(ElementBase):
+class Component(ComponentBase):
   '''
   Type that acts as the base element type in the assemblage package.
 

@@ -35,6 +35,8 @@ class NullDigestCache(DigestCacheBase):
   def writeBack(self):
     pass
 class NullAssemblage(AssemblageBase):
+  def apply(self, action):
+    pass
   def logger(self):
     pass
   def digestCache(self):
