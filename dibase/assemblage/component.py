@@ -11,7 +11,7 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from interfaces import ElementBase
+from .interfaces import ElementBase
 import logging
 import inspect
 import sys

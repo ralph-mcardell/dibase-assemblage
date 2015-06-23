@@ -11,7 +11,7 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from component import Component
+from .component import Component
 import os
 import hashlib
  

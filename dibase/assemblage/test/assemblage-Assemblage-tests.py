@@ -8,11 +8,18 @@ import logging
 import io
 
 import os,sys
-parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-if parent_dir not in sys.path:
-  sys.path.insert(0, parent_dir)
-from assemblage import Assemblage
-from interfaces import AssemblagePlanBase,DigestCacheBase
+project_root_dir = os.path.dirname(
+                    os.path.dirname(
+                      os.path.dirname(
+                        os.path.dirname( os.path.realpath(__file__)
+                        )    # this directory 
+                      )      # assemblage directory 
+                    )        # dibase directory 
+                  )          # project directory
+if project_root_dir not in sys.path:
+  sys.path.insert(0, project_root_dir)
+from dibase.assemblage.assemblage import Assemblage
+from dibase.assemblage.interfaces import AssemblagePlanBase,DigestCacheBase
 
 class Component:
   def apply(self, action):

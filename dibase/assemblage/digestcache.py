@@ -11,7 +11,7 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from interfaces import DigestCacheBase
+from .interfaces import DigestCacheBase
 import logging
 
 class DigestCache(DigestCacheBase):

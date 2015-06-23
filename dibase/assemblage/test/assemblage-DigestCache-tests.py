@@ -9,11 +9,18 @@ import logging
 import inspect
 
 import os,sys
-parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-if parent_dir not in sys.path:
-  sys.path.insert(0, parent_dir)
-from digestcache import DigestCache
-from interfaces import DigestStoreBase
+project_root_dir = os.path.dirname(
+                    os.path.dirname(
+                      os.path.dirname(
+                        os.path.dirname( os.path.realpath(__file__)
+                        )    # this directory 
+                      )      # assemblage directory 
+                    )        # dibase directory 
+                  )          # project directory
+if project_root_dir not in sys.path:
+  sys.path.insert(0, project_root_dir)
+from dibase.assemblage.digestcache import DigestCache
+from dibase.assemblage.interfaces import DigestStoreBase
 
 class SpoofDigestStore(DigestStoreBase):
   def __init__(self, update_raises=False):

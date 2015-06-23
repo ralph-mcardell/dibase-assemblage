@@ -11,7 +11,7 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from interfaces import DigestStoreBase
+from .interfaces import DigestStoreBase
 import shelve
 
 class ShelfDigestStore(DigestStoreBase):

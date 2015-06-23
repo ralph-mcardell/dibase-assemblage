@@ -10,7 +10,7 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from interfaces import AssemblageBase
+from .interfaces import AssemblageBase
 
 class Assemblage(AssemblageBase):
   '''

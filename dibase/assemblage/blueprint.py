@@ -11,7 +11,7 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from interfaces import AssemblagePlanBase
+from .interfaces import AssemblagePlanBase
 import logging
 import sys
 

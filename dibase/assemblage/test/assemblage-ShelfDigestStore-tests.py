@@ -7,10 +7,15 @@ import unittest
 import glob
 
 import os,sys
-parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-if parent_dir not in sys.path:
-  sys.path.insert(0, parent_dir)
-from shelfdigeststore import ShelfDigestStore
+project_root_dir = os.path.dirname(
+                    os.path.dirname(
+                      os.path.dirname(
+                        os.path.dirname( os.path.realpath(__file__)
+                        )    # this directory 
+                      )      # assemblage directory 
+                    )        # dibase directory 
+                  )          # project directory
+from dibase.assemblage.shelfdigeststore import ShelfDigestStore
 
 class TestAssemblageDigestStore(unittest.TestCase):
   @staticmethod

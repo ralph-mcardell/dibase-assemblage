@@ -9,11 +9,16 @@ import logging
 import inspect
 
 import os,sys
-parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-if parent_dir not in sys.path:
-  sys.path.insert(0, parent_dir)
-from component import Component
-from interfaces import AssemblageBase, DigestCacheBase
+project_root_dir = os.path.dirname(
+                    os.path.dirname(
+                      os.path.dirname(
+                        os.path.dirname( os.path.realpath(__file__)
+                        )    # this directory 
+                      )      # assemblage directory 
+                    )        # dibase directory 
+                  )          # project directory
+from dibase.assemblage.component import Component
+from dibase.assemblage.interfaces import AssemblageBase, DigestCacheBase
 
 class someModuleScopeAction:
   query_before = False
