@@ -109,7 +109,7 @@ class Blueprint(AssemblagePlanBase):
 
   def __set_default_logger(self):
     '''
-    Internal method to set a default logging.Logger to use should their not
+    Internal method to set a default logging.Logger to use should there not
     have been one set at the time the logger method is called.
     '''
     self.__log = logging.getLogger("assemblage.default")
