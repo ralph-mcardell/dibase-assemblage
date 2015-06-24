@@ -45,7 +45,7 @@ class Component(ComponentBase):
       self.__logger = assemblage.logger()
     else:
       self.__logger = logging.getLogger()
-    self.__debug("Created %s"%repr(self))
+    self.debug("Created %s"%repr(self))
   def __repr__(self):
     '''
     Note: representation ignores __logger attribute.
@@ -87,7 +87,7 @@ class Component(ComponentBase):
     callerframe = inspect.getouterframes(inspect.currentframe(),3)
     return " [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message}
     
-  def __debug(self, message):
+  def debug(self, message):
     if self.__logger.isEnabledFor(logging.DEBUG):
       self.__logger.debug(self.__log_message(message))
   
@@ -111,8 +111,8 @@ class Component(ComponentBase):
       return None
     frame = frames[start_frame][0]
     flocals = frame.f_locals
-#    self.__debug("FRAME  LOCALS:%s" % strmap(flocals))
-#    self.__debug("FRAME GLOBALS:%s" % strmap(frame.f_globals))
+#    self.debug("FRAME  LOCALS:%s" % strmap(flocals))
+#    self.debug("FRAME GLOBALS:%s" % strmap(frame.f_globals))
     if name in flocals.keys():
       if inspect.isclass(flocals[name]):
         return flocals[name]
@@ -127,34 +127,34 @@ class Component(ComponentBase):
         return the_class
       return None
     if inspect.isclass(qualified_type):
-      self.__debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
+      self.debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
       qualname = qualified_type.__qualname__
       qualname_parts = qualname.split('.')
-      self.__debug("Qualified name parts: '%s'" % qualname_parts);
+      self.debug("Qualified name parts: '%s'" % qualname_parts);
       if qualname_parts[-1]==name:
         return qualified_type # self value is the type we are looking for!
       the_class = getattr(qualified_type, name, None)
       if the_class:
         return the_class
       del qualname_parts[-1] # we just checked to see if name was part of the last element
-      self.__debug("Qualified name parts to be processed:'%s'" % qualname_parts);
+      self.debug("Qualified name parts to be processed:'%s'" % qualname_parts);
       obj = get_module_from_frame(frame)
       if obj:
-        self.__debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+        self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
         obj_list = [obj]
         for part in qualname_parts:
           if part!='<locals>':
             obj = getattr(obj, part, None)
             if obj:
-              self.__debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+              self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
               obj_list.append(obj)
             else:
-              self.__debug("### FAILED finding object for part '%s' ###" % part)
+              self.debug("### FAILED finding object for part '%s' ###" % part)
               return None
         for obj in reversed(obj_list):
-          self.__debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+          self.debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
           if inspect.isclass(obj) or inspect.ismodule(obj):
-            self.__debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+            self.debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
             the_class = getattr(obj, name, None)
             if the_class:
               return the_class
@@ -163,26 +163,26 @@ class Component(ComponentBase):
   def __get_class_qualname_in_callers_scope(self, name, start_frame=2):
     the_class = get_class_in_callers_scope(name, start_frame+1) # exclude our frame
     if the_class:
-#      self.__debug("   Returning '%s'" % '.'.join([the_class.__module__,the_class.__qualname__]))
+#      self.debug("   Returning '%s'" % '.'.join([the_class.__module__,the_class.__qualname__]))
       return '.'.join([the_class.__module__,the_class.__qualname__])
     return None
   
   def __resolver(self,action, action_method_name, callers_frame=2):
-      self.__debug("apply('%(a)s): Resolving function '%(f)s'"
+      self.debug("apply('%(a)s): Resolving function '%(f)s'"
                          % {'a':action,'f':action_method_name})
       self_method_name = ''.join([action,'_', action_method_name])
       method = getattr(self, self_method_name, False)
       if method:
-        self.__debug("Found method 'self.%s'"%self_method_name)
+        self.debug("Found method 'self.%s'"%self_method_name)
         return method
       else:
         action_class = self.__get_class_in_callers_scope(action,callers_frame)
         if action_class:
           method = getattr(action_class, action_method_name, False)
-          self.__debug("Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
+          self.debug("Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
           return lambda : method(self)
         else:
-          self.__debug("!! class '%s' not found !!" % action)
+          self.debug("!! class '%s' not found !!" % action)
           return False
  
   def __apply_inner(self, action, seen_components, callers_frame=5):
@@ -207,19 +207,19 @@ class Component(ComponentBase):
                                             )
                         )
     seen_components.append(self)
-    self.__debug("apply('%s): Querying do before actions" % action)
+    self.debug("apply('%s): Querying do before actions" % action)
     if query_do_before_elements_actions(action, callers_frame):
-      self.__debug("Passed check, doing before actions")
+      self.debug("Passed check, doing before actions")
       do_before_elements_actions(action, callers_frame)
-    self.__debug("apply('%s): Querying process elements" % action)
+    self.debug("apply('%s): Querying process elements" % action)
     if query_process_elements(action, callers_frame):
-      self.__debug("Passed check, processing elements")
+      self.debug("Passed check, processing elements")
       for element in self.__elements:
-        self.__debug("Processing element:'%s'"%element)
+        self.debug("Processing element:'%s'"%element)
         element.__apply_inner(action, seen_components, callers_frame+1)
-    self.__debug("apply('%s): Querying do after actions" % action)
+    self.debug("apply('%s): Querying do after actions" % action)
     if query_do_after_elements_actions(action, callers_frame):
-      self.__debug("Passed check, doing after actions")
+      self.debug("Passed check, doing after actions")
       do_after_elements_actions(action, callers_frame)
     seen_components.remove(self)
 
