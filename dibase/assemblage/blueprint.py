@@ -137,6 +137,7 @@ class Blueprint(AssemblagePlanBase):
     logger object currently associated with a Blueprint object.
     '''
     self.__log = logger
+    return self
 
   def setDigestCache(self, digest_cache):
     '''
@@ -144,6 +145,7 @@ class Blueprint(AssemblagePlanBase):
     element resource digest cache used to support resource change detection.
     '''
     self.__digest_cache = digest_cache
+    return self
 
   def digestCache(self):
     '''
@@ -282,3 +284,4 @@ class Blueprint(AssemblagePlanBase):
         if e not in self.__non_root_elements:
           self.__non_root_elements.add(e)
       nm_index = nm_index + 1
+    return self
