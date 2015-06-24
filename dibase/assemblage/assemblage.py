@@ -32,16 +32,16 @@ class Assemblage(AssemblageBase):
     '''
     return hasattr(object, '__iter__')
 
-  def __apply(self, object, action):
+  def __apply(self, object, action, seen_components, callers_frame=6):
     '''
     Internal helper for apply method. Checks to see if object has a callable
     apply attribute. It is does then calls object.apply passing it action.
     Otherwise a warning is logged to the Assemblage logger.
     '''
-    if hasattr(object, 'apply') and callable(getattr(object, 'apply')):
-      object.apply(action)
+    if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
+      object._applyInner(action, seen_components, callers_frame)
     else:
-      self.__logger.warning("Assemblage element has no 'apply' method (object=%(e)s)." % {'e':object})
+      self.__logger.warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
 
   def __init__(self, plan):
     '''
@@ -76,6 +76,16 @@ class Assemblage(AssemblageBase):
     '''
     return self.__digest_cache
 
+  def _applyInner(self, action, seen_components, callers_frame=7):
+    if self.__elements:
+      if Assemblage.isiterable(self.__elements):
+        for e in self.__elements:
+          self.__apply(e, action, [], callers_frame)
+      else:
+          self.__apply(self.__elements, action, [], callers_frame)
+    else:
+      self.__logger.warning("Assemblage is empty - no component elements to apply action to.")
+  
   def apply(self, action):
     '''
     Apply the passed action parameter to each object in the instance
@@ -91,11 +101,4 @@ class Assemblage(AssemblageBase):
     A warning is also logged if the elements attribute evaluates to False,
     i.e. is False, None, or an empty sequence, etc.
     '''
-    if self.__elements:
-      if Assemblage.isiterable(self.__elements):
-        for e in self.__elements:
-          self.__apply(e, action)
-      else:
-          self.__apply(self.__elements, action)
-    else:
-      self.__logger.warning("Assemblage is empty - no component elements to apply action to.")
+    self._applyInner(action, [], callers_frame=8)

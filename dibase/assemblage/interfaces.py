@@ -24,6 +24,21 @@ class ElementBase(metaclass=ABCMeta):
     to element.
     '''
     pass
+  @abstractmethod
+  def _applyInner(self, action, seen_elements, callers_frame):
+    '''
+    Inner method used to apply function - not intended to be called by
+    application code which should call apply. The _applyInner method is
+    intended to be called on elements recursively initially from an application
+    apply method call to perform the task of applying actions in the required
+    manner. In addition to the outer application apply method's action string
+    parameter _applyInner is also passed a collection of seen elements for
+    circular reference detection and a value that indicates how many call
+    frames away from the current one (possibly plus a fixed amount) the 
+    original apply calling code is and can be used to locate the application
+    call context to use to resolve names of action classes.
+    '''
+    pass
 
 class AssemblageBase(ElementBase):
   '''

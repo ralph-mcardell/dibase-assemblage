@@ -56,6 +56,8 @@ class SpoofDigestCache(DigestCacheBase):
     self.writeBackCount = self.writeBackCount + 1
 
 class NullAssemblage(AssemblageBase):
+  def _applyInner(self, action, seen_components, callers_frame=7):
+    pass
   def apply(self, action):
     pass
   def logger(self):

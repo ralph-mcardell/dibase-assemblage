@@ -83,13 +83,13 @@ class Component(ComponentBase):
     return getattr(self.__elements[id],name) if default is AttributeError\
             else getattr(self.__elements[id],name,default)
 
-  def __log_message(self, message):
+  def __log_message(self, message, frame=1):
     callerframe = inspect.getouterframes(inspect.currentframe(),3)
-    return " [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[1][3], 'm':message}
+    return " [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[frame][3], 'm':message}
     
   def debug(self, message):
     if self.__logger.isEnabledFor(logging.DEBUG):
-      self.__logger.debug(self.__log_message(message))
+      self.__logger.debug(self.__log_message(message,2))
   
   def __get_class_in_callers_scope(self, name, start_frame=2):
     def get_module_from_frame(frame):
@@ -185,7 +185,7 @@ class Component(ComponentBase):
           self.debug("!! class '%s' not found !!" % action)
           return False
  
-  def __apply_inner(self, action, seen_components, callers_frame=5):
+  def _applyInner(self, action, seen_components, callers_frame=5):
     def resolve_and_call_function(action, action_method_name, callers_frame=3):
       func = self.__resolver(action, action_method_name, callers_frame)
       return func and func()
@@ -216,7 +216,7 @@ class Component(ComponentBase):
       self.debug("Passed check, processing elements")
       for element in self.__elements:
         self.debug("Processing element:'%s'"%element)
-        element.__apply_inner(action, seen_components, callers_frame+1)
+        element._applyInner(action, seen_components, callers_frame+1)
     self.debug("apply('%s): Querying do after actions" % action)
     if query_do_after_elements_actions(action, callers_frame):
       self.debug("Passed check, doing after actions")
@@ -266,7 +266,7 @@ class Component(ComponentBase):
     to be either class or static methods taking (other than the cls parameter
     for class methods) only the Component as a parameter.
     '''
-    self.__apply_inner(action, [], callers_frame=6)
+    self._applyInner(action, [], callers_frame=6)
   def digest(self):
     '''
     Intended to be overridden.

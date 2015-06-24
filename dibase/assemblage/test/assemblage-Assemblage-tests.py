@@ -22,19 +22,21 @@ from dibase.assemblage.assemblage import Assemblage
 from dibase.assemblage.interfaces import AssemblagePlanBase,DigestCacheBase
 
 class Component:
+  def _applyInner(self, action, seen_components, callers_frame=7):
+    pass
   def apply(self, action):
     pass
 
 class NoteApplyCalls:
   def __init__(self):
     self.applyCount = 0
-  def apply(self, action):
+  def _applyInner(self, action, seen_components, callers_frame=7):
     self.applyCount = self.applyCount + 1
 
 class NoteLastAppliedAction:
   def __init__(self):
     self.lastAction = ''
-  def apply(self, action):
+  def _applyInner(self, action, seen_components, callers_frame=7):
     self.lastAction = action
 
 class NotApplicable:
@@ -80,6 +82,7 @@ class TestAssemblageAssemblage(unittest.TestCase):
     b = Blueprint([Component()])
     Assemblage(b).apply("anAction")    
     self.assertFalse(b.logContents())
+
   def test_apply_action_to_Assemblage_from_non_empty_blueprint_calls_apply_on_all_top_level_components(self):
     b = Blueprint([NoteApplyCalls(), NoteApplyCalls(), NoteApplyCalls(), NoteApplyCalls()])
     a1 = Assemblage(b)
