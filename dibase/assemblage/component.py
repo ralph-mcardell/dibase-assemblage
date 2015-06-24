@@ -179,11 +179,14 @@ class Component(ComponentBase):
         action_class = self.__get_class_in_callers_scope(action,callers_frame)
         if action_class:
           method = getattr(action_class, action_method_name, False)
-          self.debug("Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
-          return lambda : method(self)
+          if method:
+            self.debug("Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
+            return lambda : method(self)
+          else:
+            self.debug("!! Method '%(c)s.%(m)s' not found !!" % {'c':action, 'm':action_method_name})         
         else:
           self.debug("!! class '%s' not found !!" % action)
-          return False
+        return False
  
   def _applyInner(self, action, seen_components, callers_frame=5):
     def resolve_and_call_function(action, action_method_name, callers_frame=3):

@@ -45,6 +45,9 @@ class someModuleScopeAction:
   def afterElementsActions(cls,element):
     cls.after = True
 
+class NoActionsAction:
+  pass
+ 
 class SpoofDigestCache(DigestCacheBase):
   def __init__(self):
     self.updateIfDifferentCount = 0
@@ -600,5 +603,25 @@ class TestAssemblageComponent(unittest.TestCase):
                   , elements=[Component('se-1', LoggingAssemblage())]
                   )
     self.assertIsNone(c.elementAttribute(0,'nosuchattribute', None))
+  def test_module_level_empty_action_class_acts_like_all_queries_return_false(self):
+    class RecordElementActionsComponent(Component):
+      def __init__(self,name,assm,elements=[],logger=None):
+        self.before = False
+        self.after = False
+        super().__init__(name,assm,elements,logger)
+      def NoActionsAction_beforeElementsActions(self):
+        self.before = True
+      def NoActionsAction_afterElementsActions(self):
+        self.after = True
+  
+    c =  RecordElementActionsComponent\
+                  ( 'test'
+                  , LoggingAssemblage()
+                  , elements=[Component('se-1', LoggingAssemblage())]
+                  )
+    c.apply('NoActionsAction')
+    self.assertFalse(c.before)
+    self.assertFalse(c.after)
+
 if __name__ == '__main__':
   unittest.main()
