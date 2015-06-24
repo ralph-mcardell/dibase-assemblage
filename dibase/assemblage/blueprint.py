@@ -116,7 +116,7 @@ class Blueprint(AssemblagePlanBase):
     self.__log.propagate = False
     if not self.__log.hasHandlers():
       loghdr = logging.StreamHandler(stream=sys.stdout)
-      loghdr.setLevel(logging.INFO)
+      loghdr.setLevel(logging.DEBUG)
       formatter = logging.Formatter('%(levelname)s: %(message)s')
       loghdr.setFormatter(formatter)
       self.__log.addHandler(loghdr)
