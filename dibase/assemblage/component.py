@@ -69,6 +69,7 @@ class Component(ComponentBase):
     return str(self) > str(other)
   def __ge__(self, other):
     return str(self) >= str(other)
+
   def elementAttribute(self, id, name, default=AttributeError):
     if (type(id) is not int) or id<0 or id>=len(self.__elements):
       if default is AttributeError:
@@ -90,7 +91,10 @@ class Component(ComponentBase):
   def debug(self, message):
     if self.__logger.isEnabledFor(logging.DEBUG):
       self.__logger.debug(self.__log_message(message,2))
-  
+
+  def assemblage(self):
+    return self.__assemblage
+
   def __get_class_in_callers_scope(self, name, start_frame=2):
     def get_module_from_frame(frame):
       module_name = frame.f_globals['__name__']
