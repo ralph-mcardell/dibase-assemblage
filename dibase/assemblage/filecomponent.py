@@ -39,7 +39,10 @@ class FileComponent(Component):
       self.path = os.path.abspath(os.path.expanduser(str(self)))
     return self.path
   def doesNotExist(self):
-    return not os.path.exists(self.normalisedPath())
+    does_not_exist = not os.path.exists(self.normalisedPath())
+    self.debug("Target file '%(f)s' does not exist? %(b)s" % {'f':self.normalisedPath(), 'b':does_not_exist})
+    return does_not_exist
+
   def digest(self):
     '''
     Expects the path given by the component's name (str(self)) to exist then
