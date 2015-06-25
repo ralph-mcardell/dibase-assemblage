@@ -60,11 +60,11 @@ class DigestCacheAssemblage(NullAssemblage):
 class TestAssemblageFileComponent(unittest.TestCase):
   def test_DoesNotExist_is_True_for_non_existent_file(self):
     fc = FileComponent("./nosuchfile.tst",NullAssemblage())
-    self.assertTrue(fc.DoesNotExist())
+    self.assertTrue(fc.doesNotExist())
   def test_DoesNotExist_is_False_for_existent_file(self):
     with tempfile.NamedTemporaryFile() as tf:
       fc = FileComponent(tf.name,NullAssemblage())
-      self.assertFalse(fc.DoesNotExist())
+      self.assertFalse(fc.doesNotExist())
   def test_hasChanged_True_for_new_FileComponents(self):
     tf = tempfile.NamedTemporaryFile(delete=False)
     fc = FileComponent(tf.name,DigestCacheAssemblage())
