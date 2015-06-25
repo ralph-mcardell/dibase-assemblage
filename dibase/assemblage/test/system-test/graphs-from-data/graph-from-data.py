@@ -72,7 +72,6 @@ class CSVDataMunger(Component):
         self.inputFilePath = e.normalisedPath()
     if not self.inputFilePath:
       raise RuntimeError("CSVDataMunger: No input FileComponent element provided" )
-
     super().__init__(name,assemblage,elements,logger)
     self.xform = transformer
 
@@ -114,7 +113,7 @@ class CSVDataMunger(Component):
         file pathnames - with the first record giving the dataset name.
     '''
     data_to_write = {}
-    path = self.elementAttribute(0,'normalisedPath')()
+    path = self.inputFilePath
     self.debug("Reading raw data from CSV file: '%s'" % path )
     with open(path) as csvfile:
       dialect = csv.Sniffer().sniff(csvfile.read(4096))
@@ -143,7 +142,7 @@ class CSVDataMunger(Component):
                   mbr_writer.writerow([price])
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
     self.assemblage().digestCache().writeBack()
-
+    
 class DirectoryComponent(Component):
   '''
   A simple sub-type of Component that ensures directories are created if
