@@ -46,6 +46,7 @@ from dibase.assemblage.shelfdigeststore import ShelfDigestStore
 
 import csv
 import logging
+import shelve
 
 class build: # action class
   @staticmethod
@@ -56,7 +57,7 @@ class build: # action class
      # we want to build ourself after elements we need have been if we need to
     return element.doesNotExist() or element.isOutOfDate()
 
-class CSVDataMunger(Component):
+class CSVDataMunger(FileComponent):
   def __init__(self, name, assemblage, elements=[], logger=None, transformer=None):
     '''
     Passes all parameters but transformer on to the Component base.
@@ -142,7 +143,70 @@ class CSVDataMunger(Component):
                   mbr_writer.writerow([price])
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
     self.assemblage().digestCache().writeBack()
-    
+
+class CSVGroupDataCompiler(Component):
+  def __init__(self, name, assemblage, elements=[], logger=None):
+    self.inputFilePath = None
+    for e in elements:
+      if type(e) is CSVDataMunger:
+        if self.inputFilePath:
+          raise RuntimeError("CSVGroupDataCompiler: more than 1 input CSVDataMunger elements provided")
+        self.inputFilePath = e.normalisedPath()
+    if not self.inputFilePath:
+      raise RuntimeError("CSVGroupDataCompiler: No input CSVDataMunger element provided" )
+    super().__init__(name,assemblage,elements,logger)
+
+  def doesNotExist(self):
+    does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
+    self.debug("Target file(s) '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
+    return does_not_exist
+
+  def build_afterElementsActions(self):
+    '''
+    Reads main group data CSV file and all sub-files listed within it.
+    Constructs a Python shelve persistent map of this data as the output
+    file.
+    '''
+    data_to_write = {}
+    path = self.inputFilePath
+    self.debug("Processing main group data from CSV file: '%s'" % path )
+    main_name = None
+    with open(path) as main_csvfile:
+      dialect = csv.Sniffer().sniff(main_csvfile.read(4096))
+      main_csvfile.seek(0)
+      main_reader = csv.DictReader(main_csvfile, dialect=dialect)
+      main_title = None
+      for main_row in main_reader:
+        if main_row['Group']=='__METADATA__':
+          if main_name!=None:
+            raise RuntimeError( "CSVGroupDataCompiler: Main group data file '%s' has more than one '__METADATA__' Group row"
+                                % path
+                              )
+          main_name = main_row['Member']
+          data_to_write['__METADATA__'] = {'__TITLE__' : main_row['File']}
+        else: 
+#          self.debug("Processing member group data from CSV file: '%s'" % main_row['File'] )
+          with open(main_row['File']) as mbr_csvfile:
+            mbr_reader = csv.DictReader(mbr_csvfile, dialect='excel')
+            group = main_row['Group']
+            mbr = main_row['Member']
+            if group not in data_to_write:
+              data_to_write[group] = {}
+            data_to_write[group][mbr] = {}
+            for mbr_row in mbr_reader:
+              for mbr_fld,mbr_value in mbr_row.items():
+                if mbr_fld not in data_to_write[group][mbr]:
+                  data_to_write[group][mbr][mbr_fld] = [mbr_value]
+                else:
+                  data_to_write[group][mbr][mbr_fld].append(mbr_value)
+      if main_name==None:
+        raise RuntimeError( "CSVGroupDataCompiler: Main group data file '%s' is missing a '__METADATA__' Group row"
+                            % path
+                          )
+#      self.debug("Data to be written to Group Data Object (gdo) file:\n%s" % str(data_to_write))
+      with shelve.open(str(self)) as store:
+        store[main_name] = data_to_write
+
 class DirectoryComponent(Component):
   '''
   A simple sub-type of Component that ensures directories are created if
@@ -162,7 +226,12 @@ class DirectoryComponent(Component):
       os.mkdir(str(self))
     if not os.path.exists(str(self)):
       raise OSError("Failed to create directory '%s'"%str(self))
+    self.debug("Stating that directory '%s' DOES exist" % str(self))
     return False
+
+  def hasChanged(self):
+    self.debug("Stating that directory '%s' has NOT changed" % str(self))
+    return False # yes directories can change but not relevant here!
 
 def MungeSalesJan2009(records):
   first_row = True
@@ -214,20 +283,26 @@ def MungeSalesJan2009(records):
 
 class SystemTestGraphsFromCSVData(unittest.TestCase):
   def test_CSVDataMunger(self):
-    source_dir = os.path.abspath('./source')
     original_data_dir = os.path.abspath('./download')
+    source_dir = os.path.abspath('./source')
+    build_dir = os.path.abspath('./build')
     sales_original_filestem = 'SalesJan2009'
     sales_original_data = '%(p)s/%(f)s.csv'%{'p':original_data_dir, 'f':sales_original_filestem}
     sales_source_file = '%(p)s/%(f)s.csv'%{'p':source_dir, 'f':sales_original_filestem}
+    sales_object_file = '%(p)s/%(f)s.gdo'%{'p':build_dir, 'f':sales_original_filestem}
     assm = Assemblage\
             (
               plan = Blueprint()
                       .setDigestCache(DigestCache(ShelfDigestStore()))
                       .addElements(source_dir, DirectoryComponent)
+                      .addElements(build_dir, DirectoryComponent)
                       .addElements(sales_original_data, FileComponent)
                       .addElements(sales_source_file, CSVDataMunger
                                   , elements=[sales_original_data, source_dir]
                                   , transformer=MungeSalesJan2009
+                                  )
+                      .addElements(sales_object_file, CSVGroupDataCompiler
+                                  , elements=[sales_source_file, build_dir]
                                   )
                       .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
             ).apply('build')
