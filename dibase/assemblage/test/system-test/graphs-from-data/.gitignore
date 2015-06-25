@@ -1,0 +1,4 @@
+# Git should ignore generated files and a few others
+*.zip
+__MACOSX/
+source/
