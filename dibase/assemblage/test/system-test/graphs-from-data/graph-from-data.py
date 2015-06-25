@@ -64,8 +64,15 @@ class CSVDataMunger(Component):
       Expects to munge exactly 1 (sub-)element representing the CSV file to munge
       data from.
       '''
-      if len(elements)!=1:
-        raise RuntimeError("CSVDataMunger: expected exactly 1 element dependency, %d given", len(elements))
+      self.inputFilePath = None
+      for e in elements:
+        if type(e) is FileComponent:
+          if self.inputFilePath:
+            raise RuntimeError("CSVDataMunger: more than 1 input FileComponent elements provided")
+          self.inputFilePath = e.normalisedPath()
+      if not self.inputFilePath:
+        raise RuntimeError("CSVDataMunger: No input FileComponent element provided" )
+
       super().__init__(name,assemblage,elements,logger)
       self.path = None # filled in as late as possible
       self.xform = transformer
@@ -186,15 +193,44 @@ def MungeSalesJan2009(records):
           output['Country'][country]['__DATA__'].append(price) 
   return output
 
+class DirectoryComponent(Component):
+    '''
+    A simple sub-type of Component that ensures directories are created if
+    they do not exist regardless of action so long as an action query function
+    calls doesNotExist.
+    '''
+    def __init__(self, name, assemblage, elements=[], logger=None):
+      super().__init__(name,assemblage,elements,logger)
+
+    def doesNotExist(self):
+      '''
+      Unlike most doesNotExist methods the DirectoryComponent implementation
+      uses a call to doesNotExist to ensure the directory does exist thus
+      allowing it to be used with any action that queries doesNotExist.
+      '''
+      if not os.path.exists(str(self)):
+        os.mkdir(str(self))
+      if not os.path.exists(str(self)):
+        raise OSError("Failed to create directory '%s'"%str(self))
+      return False
+
 class SystemTestGraphsFromCSVData(unittest.TestCase):
   def test_CSVDataMunger(self):
-    
+    source_dir = os.path.abspath('./source')
+    original_data_dir = os.path.abspath('./download')
+    sales_original_filestem = 'SalesJan2009'
+    sales_original_data = '%(p)s/%(f)s.csv'%{'p':original_data_dir, 'f':sales_original_filestem}
+    sales_source_file = '%(p)s/%(f)s.csv'%{'p':source_dir, 'f':sales_original_filestem}
     assm = Assemblage\
             (
               plan = Blueprint()
                       .setDigestCache(DigestCache(ShelfDigestStore()))
-                      .addElements('./SalesJan2009.csv', FileComponent)
-                      .addElements('SalesJan2009Groups.csv', CSVDataMunger, elements='./SalesJan2009.csv', transformer=MungeSalesJan2009)
+                      .addElements(source_dir, DirectoryComponent)
+                      .addElements(sales_original_data, FileComponent)
+                      .addElements(sales_source_file, CSVDataMunger
+                                  , elements=[sales_original_data, source_dir]
+                                  , transformer=MungeSalesJan2009
+                                  )
                       .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
             ).apply('build')
 
