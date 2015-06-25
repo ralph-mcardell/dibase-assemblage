@@ -321,5 +321,6 @@ class Component(ComponentBase):
     Passes self onto the assemblage digest cache which compares
     current Component.digest() value with the previous cached/stored value.
     '''
-    self.debug("Checking if Component has changed")
-    return self.__assemblage.digestCache().updateIfDifferent(self)
+    has_changed = self.__assemblage.digestCache().updateIfDifferent(self)
+    self.debug("Checking if Component has changed: %s"%has_changed)
+    return has_changed
