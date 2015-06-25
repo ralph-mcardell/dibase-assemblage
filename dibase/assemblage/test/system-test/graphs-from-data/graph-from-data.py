@@ -53,7 +53,8 @@ class build: # action class
     return True   # we want to build elements we depend on
   @staticmethod
   def queryDoAfterElementsActions(element):
-    return True   # we want to build ourself after elements we need have been
+     # we want to build ourself after elements we need have been if we need to
+    return element.doesNotExist() or element.isOutOfDate()
 
 class CSVDataMunger(Component):
     def __init__(self, name, assemblage, elements=[], logger=None, transformer=None):
@@ -68,6 +69,9 @@ class CSVDataMunger(Component):
       super().__init__(name,assemblage,elements,logger)
       self.path = None # filled in as late as possible
       self.xform = transformer
+
+    def doesNotExist(self):
+      return not os.path.exists(str(self))
 
     def build_afterElementsActions(self):
       '''
@@ -105,21 +109,24 @@ class CSVDataMunger(Component):
       '''
       data_to_write = {}
       path = self.elementAttribute(0,'normalisedPath')()
-      self.debug("Opening CSV file: '%s'" % path )
+      self.debug("Reading raw data from CSV file: '%s'" % path )
       with open(path) as csvfile:
         dialect = csv.Sniffer().sniff(csvfile.read(4096))
         csvfile.seek(0)
         reader = csv.reader(csvfile, dialect)
         data_to_write = self.xform(reader)
-      self.debug("Data to be written to CSV files:\n%s" % str(data_to_write))
-      outfilename_stem = data_to_write['__METADATA__']['__NAME__']
-      main_filename = '.'.join([outfilename_stem,'csv'])
+#      self.debug("Data to be written to CSV files:\n%s" % str(data_to_write))
+      main_filename = str(self)
+      outfilename_stem = os.path.splitext(main_filename)[0]
+      self.debug("Writing output data to main file %(m)s and member files with names starting '%(s)s'" 
+                  % {'m':main_filename, 's': outfilename_stem}
+                )
       with open(main_filename,'w', newline='') as mainfile:
         main_writer = csv.writer(mainfile)
         main_writer.writerow(['Group','Member','File'])
         for grp_name,grp_data in data_to_write.items():
           if grp_name=='__METADATA__':
-            main_writer.writerow([grp_name,grp_data['__NAME__'], grp_data['__TITLE__']])
+            main_writer.writerow([grp_name,outfilename_stem, grp_data['__TITLE__']])
           else:
               for mbr_name,mbr_data in grp_data.items():
                 mbr_filename = '.'.join([outfilename_stem,mbr_data['__FILE__'],'csv'])
@@ -129,15 +136,14 @@ class CSVDataMunger(Component):
                   for price in mbr_data['__DATA__']:
                     mbr_writer.writerow([price])
                 main_writer.writerow([grp_name,mbr_name,mbr_filename])
-                
+      self.assemblage().digestCache().writeBack()
+
 def MungeSalesJan2009(records):
   first_row = True
   price_index = None
   city_index = None
 #  data = {}
-  output =  { '__METADATA__' : { '__TITLE__' : 'January 2009 Sales Groups'
-                               , '__NAME__'  : 'SalesJan2009Groups'
-                               }
+  output =  { '__METADATA__' : { '__TITLE__' : 'January 2009 Sales Groups' }
             , 'City'  : {}
             , 'State'  : {}
             , 'Country'  : {}
@@ -182,11 +188,13 @@ def MungeSalesJan2009(records):
 
 class SystemTestGraphsFromCSVData(unittest.TestCase):
   def test_CSVDataMunger(self):
+    
     assm = Assemblage\
             (
               plan = Blueprint()
+                      .setDigestCache(DigestCache(ShelfDigestStore()))
                       .addElements('./SalesJan2009.csv', FileComponent)
-                      .addElements('cdm-1', CSVDataMunger, elements='./SalesJan2009.csv', transformer=MungeSalesJan2009)
+                      .addElements('SalesJan2009Groups.csv', CSVDataMunger, elements='./SalesJan2009.csv', transformer=MungeSalesJan2009)
                       .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
             ).apply('build')
 
