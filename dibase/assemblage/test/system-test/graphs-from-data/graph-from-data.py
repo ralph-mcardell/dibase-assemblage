@@ -122,7 +122,13 @@ class CSVDataMunger(Component):
             main_writer.writerow([grp_name,grp_data['__NAME__'], grp_data['__TITLE__']])
           else:
               for mbr_name,mbr_data in grp_data.items():
-                main_writer.writerow([grp_name,mbr_name,'.'.join([outfilename_stem,mbr_data['__FILE__'],'csv'])])
+                mbr_filename = '.'.join([outfilename_stem,mbr_data['__FILE__'],'csv'])
+                with open(mbr_filename,'w', newline='') as mbrfile:
+                  mbr_writer = csv.writer(mbrfile)
+                  mbr_writer.writerow(['Price'])
+                  for price in mbr_data['__DATA__']:
+                    mbr_writer.writerow([price])
+                main_writer.writerow([grp_name,mbr_name,mbr_filename])
                 
 def MungeSalesJan2009(records):
   first_row = True
