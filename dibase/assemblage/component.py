@@ -292,6 +292,7 @@ class Component(ComponentBase):
     The base Component implement always returns True as it has no associated
     resource to exist.
     '''
+    self.debug("Stating that Component does not exist")
     return True
   def isOutOfDate(self):
     '''
@@ -307,6 +308,7 @@ class Component(ComponentBase):
     the assemblage whereas all other elements presumably have actions that
     re-create them from their child elements.
     '''
+    self.debug("Checking if Component is out of date")
     result = False
     if self.__elements:
       for e in self.__elements: # intentionally touch all elements
@@ -319,4 +321,5 @@ class Component(ComponentBase):
     Passes self onto the assemblage digest cache which compares
     current Component.digest() value with the previous cached/stored value.
     '''
+    self.debug("Checking if Component has changed")
     return self.__assemblage.digestCache().updateIfDifferent(self)
