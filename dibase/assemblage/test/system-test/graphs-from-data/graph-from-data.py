@@ -145,6 +145,27 @@ class CSVDataMunger(Component):
                 main_writer.writerow([grp_name,mbr_name,mbr_filename])
       self.assemblage().digestCache().writeBack()
 
+class DirectoryComponent(Component):
+    '''
+    A simple sub-type of Component that ensures directories are created if
+    they do not exist regardless of action so long as an action query function
+    calls doesNotExist.
+    '''
+    def __init__(self, name, assemblage, elements=[], logger=None):
+      super().__init__(name,assemblage,elements,logger)
+
+    def doesNotExist(self):
+      '''
+      Unlike most doesNotExist methods the DirectoryComponent implementation
+      uses a call to doesNotExist to ensure the directory does exist thus
+      allowing it to be used with any action that queries doesNotExist.
+      '''
+      if not os.path.exists(str(self)):
+        os.mkdir(str(self))
+      if not os.path.exists(str(self)):
+        raise OSError("Failed to create directory '%s'"%str(self))
+      return False
+
 def MungeSalesJan2009(records):
   first_row = True
   price_index = None
@@ -192,27 +213,6 @@ def MungeSalesJan2009(records):
         else:
           output['Country'][country]['__DATA__'].append(price) 
   return output
-
-class DirectoryComponent(Component):
-    '''
-    A simple sub-type of Component that ensures directories are created if
-    they do not exist regardless of action so long as an action query function
-    calls doesNotExist.
-    '''
-    def __init__(self, name, assemblage, elements=[], logger=None):
-      super().__init__(name,assemblage,elements,logger)
-
-    def doesNotExist(self):
-      '''
-      Unlike most doesNotExist methods the DirectoryComponent implementation
-      uses a call to doesNotExist to ensure the directory does exist thus
-      allowing it to be used with any action that queries doesNotExist.
-      '''
-      if not os.path.exists(str(self)):
-        os.mkdir(str(self))
-      if not os.path.exists(str(self)):
-        raise OSError("Failed to create directory '%s'"%str(self))
-      return False
 
 class SystemTestGraphsFromCSVData(unittest.TestCase):
   def test_CSVDataMunger(self):
