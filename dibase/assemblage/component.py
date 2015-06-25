@@ -52,7 +52,7 @@ class Component(ComponentBase):
     Return a representation that if evaluated creates object that logs to the 
     root logger.
     '''
-    return "Container(name=%(n)s,elements=%(e)s)" % {'n':self.__name,'e':self.__elements}
+    return "%(c)s(name=%(n)s,elements=%(e)s)" % {'c':self.__class__.__name__,'n':self.__name,'e':self.__elements}
   def __str__(self):
     return self.__name
   def __hash__(self):
