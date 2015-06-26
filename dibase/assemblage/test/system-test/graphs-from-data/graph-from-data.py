@@ -77,7 +77,9 @@ class CSVDataMunger(FileComponent):
     self.xform = transformer
 
   def doesNotExist(self):
-    return not os.path.exists(str(self))
+    does_not_exist = not os.path.exists(str(self))
+    self.debug("Target file '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
+    return does_not_exist
 
   def build_afterElementsActions(self):
     '''
