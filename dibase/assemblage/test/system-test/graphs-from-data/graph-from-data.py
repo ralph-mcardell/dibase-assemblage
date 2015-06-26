@@ -282,7 +282,7 @@ def MungeSalesJan2009(records):
   return output
 
 class SystemTestGraphsFromCSVData(unittest.TestCase):
-  def test_CSVDataMunger(self):
+  def test_build_from_Python_objects_element_processors(self):
     original_data_dir = os.path.abspath('./download')
     source_dir = os.path.abspath('./source')
     build_dir = os.path.abspath('./build')
