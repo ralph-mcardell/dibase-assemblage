@@ -124,15 +124,16 @@ class CSVDataMunger(FileComponent):
 #      self.debug("Data to be written to CSV files:\n%s" % str(data_to_write))
     main_filename = str(self)
     outfilename_stem = os.path.splitext(main_filename)[0]
-    self.debug("Writing output data to main file %(m)s and member files with names starting '%(s)s'" 
-                % {'m':main_filename, 's': outfilename_stem}
+    datasetname = os.path.split(outfilename_stem)[1] # tail filename part
+    self.debug("Writing output data for dataset '%(n)s' to main file '%(m)s' and member files with names starting '%(s)s'" 
+                % {'n':datasetname,'m':main_filename, 's': outfilename_stem}
               )
     with open(main_filename,'w', newline='') as mainfile:
       main_writer = csv.writer(mainfile)
       main_writer.writerow(['Group','Member','File'])
       for grp_name,grp_data in data_to_write.items():
         if grp_name=='__METADATA__':
-          main_writer.writerow([grp_name,outfilename_stem, grp_data['__TITLE__']])
+          main_writer.writerow([grp_name,datasetname, grp_data['__TITLE__']])
         else:
             for mbr_name,mbr_data in grp_data.items():
               mbr_filename = '.'.join([outfilename_stem,mbr_data['__FILE__'],'csv'])
@@ -142,7 +143,6 @@ class CSVDataMunger(FileComponent):
                 for price in mbr_data['__DATA__']:
                   mbr_writer.writerow([price])
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
-    self.assemblage().digestCache().writeBack()
 
 class CSVGroupDataCompiler(FileComponent):
   def __init__(self, name, assemblage, elements=[], logger=None):
