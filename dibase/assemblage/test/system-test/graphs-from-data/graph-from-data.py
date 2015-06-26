@@ -144,7 +144,7 @@ class CSVDataMunger(FileComponent):
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
     self.assemblage().digestCache().writeBack()
 
-class CSVGroupDataCompiler(Component):
+class CSVGroupDataCompiler(FileComponent):
   def __init__(self, name, assemblage, elements=[], logger=None):
     self.inputFilePath = None
     for e in elements:
@@ -206,6 +206,31 @@ class CSVGroupDataCompiler(Component):
 #      self.debug("Data to be written to Group Data Object (gdo) file:\n%s" % str(data_to_write))
       with shelve.open(str(self)) as store:
         store[main_name] = data_to_write
+
+class GroupDataArchiver(Component):
+  def __init__(self, name, assemblage, elements=[], logger=None):
+    self.inputFilePaths = []
+    for e in elements:
+      if type(e) is CSVGroupDataCompiler:
+        self.inputFilePaths.append(e.normalisedPath())
+    if not self.inputFilePaths:
+      raise RuntimeError("GroupDataArchiver: No input CSVGroupDataCompiler elements provided" )
+    super().__init__(name,assemblage,elements,logger)
+
+  def doesNotExist(self):
+    does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
+    self.debug("Target file(s) '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
+    return does_not_exist
+
+  def build_afterElementsActions(self):
+    '''
+    Opens and reads each shelve file-set and copies to output shelve file-set.
+    '''
+    with shelve.open(str(self)) as output_store:
+      for input_store_path in self.inputFilePaths:
+        with shelve.open(input_store_path) as input_store:
+          for dataset_name, dataset_map in input_store.items():
+            output_store[dataset_name] = dataset_map
 
 class DirectoryComponent(Component):
   '''
@@ -286,16 +311,18 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
     original_data_dir = os.path.abspath('./download')
     source_dir = os.path.abspath('./source')
     build_dir = os.path.abspath('./build')
+    lib_dir = os.path.abspath('./lib')
     sales_original_filestem = 'SalesJan2009'
+    group_data_lib_filestem = 'group-data'
     sales_original_data = '%(p)s/%(f)s.csv'%{'p':original_data_dir, 'f':sales_original_filestem}
     sales_source_file = '%(p)s/%(f)s.csv'%{'p':source_dir, 'f':sales_original_filestem}
     sales_object_file = '%(p)s/%(f)s.gdo'%{'p':build_dir, 'f':sales_original_filestem}
+    group_data_lib_file = '%(p)s/lib-%(f)s.gda'%{'p':lib_dir, 'f':group_data_lib_filestem}
     assm = Assemblage\
             (
               plan = Blueprint()
                       .setDigestCache(DigestCache(ShelfDigestStore()))
-                      .addElements(source_dir, DirectoryComponent)
-                      .addElements(build_dir, DirectoryComponent)
+                      .addElements((source_dir,build_dir,lib_dir), DirectoryComponent)
                       .addElements(sales_original_data, FileComponent)
                       .addElements(sales_source_file, CSVDataMunger
                                   , elements=[sales_original_data, source_dir]
@@ -303,6 +330,9 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
                                   )
                       .addElements(sales_object_file, CSVGroupDataCompiler
                                   , elements=[sales_source_file, build_dir]
+                                  )
+                      .addElements(group_data_lib_file, GroupDataArchiver
+                                  , elements=[sales_object_file, lib_dir]
                                   )
                       .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
             ).apply('build')
