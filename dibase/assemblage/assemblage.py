@@ -90,15 +90,21 @@ class Assemblage(AssemblageBase):
     '''
     Apply the passed action parameter to each object in the instance
     elements attribute. This is achieved simply by passing the action to
-    each element's apply method. THe action parameter should be a string, or
+    each element's apply method. The action parameter should be a string, or
     convertible to a string.
     The contents of the instance elements attribute (self.elements) should be
     either a single object or an iterable sequence of objects. Each such object
-    needs to provide an apply method that accepts (other than the object's self
-    argument) the action parameter string. A warning is logged for any
+    needs to provide an _applyInner method that accepts (other than the
+    object's self argument) the action parameter string, a list used to track
+    seen elements for circular element processing detection and value
+    indicating how far away in call frames the call is from the caller of this
+    apply method used for resolving action classes. A warning is logged for any
     element object that does not have a callable apply attribute.
     
     A warning is also logged if the elements attribute evaluates to False,
     i.e. is False, None, or an empty sequence, etc.
+    
+    After an action has been applied any changed resource digests are written
+    back to the Assemblage's digest cache.
     '''
     self._applyInner(action, [], callers_frame=8)
