@@ -108,3 +108,4 @@ class Assemblage(AssemblageBase):
     back to the Assemblage's digest cache.
     '''
     self._applyInner(action, [], callers_frame=8)
+    self.digestCache().writeBack()
