@@ -14,6 +14,7 @@ License: dual: GPL or BSD.
 from .interfaces import AssemblagePlanBase
 import logging
 import sys
+import inspect
 
 class Blueprint(AssemblagePlanBase):
   '''
@@ -188,8 +189,12 @@ class Blueprint(AssemblagePlanBase):
             subelements.append(elements[subname])
           else:
             raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
-      elements[specification.name] = \
-        (specification.kind(name=specification.name,assemblage=assemblage,elements=subelements,logger=specification.logger,**specification.args))
+      if inspect.isclass(specification.kind):
+        elements[specification.name] = \
+          (specification.kind(name=specification.name,assemblage=assemblage
+          ,elements=subelements,logger=specification.logger,**specification.args))
+      else:
+        elements[specification.name] = specification.kind
       seen_elements.remove(specification.name)
     elements = {}
     for es in self.__element_specs_by_name.values():

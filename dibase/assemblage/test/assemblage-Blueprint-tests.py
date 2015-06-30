@@ -481,6 +481,14 @@ class TestAssemblageBlueprint(unittest.TestCase):
     b.addElements('child1', TestComponent, elements='grandchild0')
     b.addElements('grandchild0', TestComponent)
     self.assertEqual(len(b.topLevelElements(NullAssemblage())),1)
+  def test_addElements_adds_pre_constructed_element_objects_correctly(self):
+    b = Blueprint()
+    grandchildElement = TestComponent('grandchild0', elements=[], logger=b.logger())
+    b.addElements('root', TestComponent, elements=['child0','child1'])
+    b.addElements('child0', TestComponent, elements='grandchild0')
+    b.addElements('child1', TestComponent, elements='grandchild0')
+    b.addElements('grandchild0', grandchildElement)
+    self.assertEqual(len(b.topLevelElements(NullAssemblage())),1)
 
 if __name__ == '__main__':
   unittest.main()
