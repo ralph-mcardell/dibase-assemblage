@@ -110,6 +110,7 @@ class Component(ComponentBase):
         mapstr = ''.join([mapstr,prefix,str(k),' : ',str(v),prefix, "  (type=",str(type(v)),')'])
       return mapstr
 
+    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
     frames = inspect.stack()
     if len(frames) < start_frame:
       return None
@@ -180,7 +181,7 @@ class Component(ComponentBase):
         self.debug("Found method 'self.%s'"%self_method_name)
         return method
       else:
-        action_class = self.__get_class_in_callers_scope(action,callers_frame)
+        action_class = self.__get_class_in_callers_scope(action,callers_frame+1)
         if action_class:
           method = getattr(action_class, action_method_name, False)
           if method:
@@ -194,18 +195,18 @@ class Component(ComponentBase):
  
   def _applyInner(self, action, seen_components, callers_frame=5):
     def resolve_and_call_function(action, action_method_name, callers_frame=3):
-      func = self.__resolver(action, action_method_name, callers_frame)
+      func = self.__resolver(action, action_method_name, callers_frame+1)
       return func and func()
     def query_do_before_elements_actions(action, callers_frame=4):
-      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', callers_frame)
+      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', callers_frame+1)
     def query_do_after_elements_actions(action, callers_frame=4):
-      return resolve_and_call_function(action, 'queryDoAfterElementsActions', callers_frame)
+      return resolve_and_call_function(action, 'queryDoAfterElementsActions', callers_frame+1)
     def query_process_elements( action, callers_frame=4):
-      return resolve_and_call_function(action, 'queryProcessElements', callers_frame)
+      return resolve_and_call_function(action, 'queryProcessElements', callers_frame+1)
     def do_before_elements_actions( action, callers_frame=4):
-      resolve_and_call_function(action, 'beforeElementsActions', callers_frame)
+      resolve_and_call_function(action, 'beforeElementsActions', callers_frame+1)
     def do_after_elements_actions(action, callers_frame=4):
-      resolve_and_call_function(action, 'afterElementsActions', callers_frame)
+      resolve_and_call_function(action, 'afterElementsActions', callers_frame+1)
 
     if self in seen_components:
       raise RuntimeError( self.__log_message( "Circular reference: already tried to "
@@ -215,6 +216,7 @@ class Component(ComponentBase):
                         )
     seen_components.append(self)
     self.debug("apply('%s): Querying do before actions" % action)
+    callers_frame = callers_frame + 1
     if query_do_before_elements_actions(action, callers_frame):
       self.debug("Passed check, doing before actions")
       do_before_elements_actions(action, callers_frame)
@@ -223,7 +225,7 @@ class Component(ComponentBase):
       self.debug("Passed check, processing elements")
       for element in self.__elements:
         self.debug("Processing element:'%s'"%element)
-        element._applyInner(action, seen_components, callers_frame+1)
+        element._applyInner(action, seen_components, callers_frame)
     self.debug("apply('%s): Querying do after actions" % action)
     if query_do_after_elements_actions(action, callers_frame):
       self.debug("Passed check, doing after actions")
@@ -273,7 +275,7 @@ class Component(ComponentBase):
     to be either class or static methods taking (other than the cls parameter
     for class methods) only the Component as a parameter.
     '''
-    self._applyInner(action, [], callers_frame=6)
+    self._applyInner(action, [], callers_frame=2)
   def digest(self):
     '''
     Intended to be overridden.

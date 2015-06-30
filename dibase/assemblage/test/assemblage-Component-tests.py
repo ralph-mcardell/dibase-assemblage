@@ -17,6 +17,8 @@ project_root_dir = os.path.dirname(
                       )      # assemblage directory 
                     )        # dibase directory 
                   )          # project directory
+if project_root_dir not in sys.path:
+  sys.path.insert(0, project_root_dir)
 from dibase.assemblage.component import Component
 from dibase.assemblage.interfaces import AssemblageBase, DigestCacheBase
 
@@ -85,8 +87,8 @@ class LoggingDigestCacheAssemblage(DigestCacheAssemblage):
     return self.log if self.log else logging.getLogger()
 
 class TestAssemblageComponent(unittest.TestCase):
-  log_level = logging.INFO 
-#  log_level = logging.DEBUG
+#  log_level = logging.INFO 
+  log_level = logging.DEBUG
   log_output = io.StringIO()
   logger = None
   show_log = False
@@ -448,7 +450,7 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(someModuleScopeAction.before)
     self.assertTrue(someModuleScopeAction.after)
   def test_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references(self):
-#    self.show_log = True
+    self.show_log = True
     grandchild2_children = []
     grandchild1 = Component('grandchild1', NullAssemblage(), logger=self.logger)
     child1 = Component('child1', NullAssemblage(), elements=[grandchild1], logger=self.logger)
@@ -575,7 +577,7 @@ class TestAssemblageComponent(unittest.TestCase):
     try:
       c.elementAttribute(1,'hasChanged')
     except LookupError as e:
-      print("\ntest_elementAttribute_returns_atribute_of_element\n"
+      print("\ntest_elementAttribute_raises_for_bad_id_and_no_default\n"
             "  INFORMATION: LookupError raised with message:\n     '%(e)s'" % {'e':e})
   def test_elementAttribute_returns_passed_default_value_for_bad_id(self):
     c =  Component( 'test'
@@ -595,7 +597,7 @@ class TestAssemblageComponent(unittest.TestCase):
     try:
       c.elementAttribute(0,'nosuchattribute')
     except AttributeError as e:
-      print("\ntest_elementAttribute_returns_atribute_of_element\n"
+      print("\ntest_elementAttribute_raises_for_bad_attribute_name_and_no_default\n"
             "  INFORMATION: AttributeError raised with message:\n     '%(e)s'" % {'e':e})
   def test_elementAttribute_returns_passed_default_value_for_bad_attribute_name(self):
     c =  Component( 'test'
