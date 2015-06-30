@@ -87,8 +87,8 @@ class LoggingDigestCacheAssemblage(DigestCacheAssemblage):
     return self.log if self.log else logging.getLogger()
 
 class TestAssemblageComponent(unittest.TestCase):
-#  log_level = logging.INFO 
-  log_level = logging.DEBUG
+  log_level = logging.INFO 
+#  log_level = logging.DEBUG
   log_output = io.StringIO()
   logger = None
   show_log = False
@@ -450,7 +450,7 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(someModuleScopeAction.before)
     self.assertTrue(someModuleScopeAction.after)
   def test_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references(self):
-    self.show_log = True
+  #  self.show_log = True
     grandchild2_children = []
     grandchild1 = Component('grandchild1', NullAssemblage(), logger=self.logger)
     child1 = Component('child1', NullAssemblage(), elements=[grandchild1], logger=self.logger)
