@@ -110,7 +110,7 @@ class Component(ComponentBase):
         mapstr = ''.join([mapstr,prefix,str(k),' : ',str(v),prefix, "  (type=",str(type(v)),')'])
       return mapstr
 
-    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
+#    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
     frames = inspect.stack()
     if len(frames) < start_frame:
       return None
@@ -132,34 +132,34 @@ class Component(ComponentBase):
         return the_class
       return None
     if inspect.isclass(qualified_type):
-      self.debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
+#      self.debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
       qualname = qualified_type.__qualname__
       qualname_parts = qualname.split('.')
-      self.debug("Qualified name parts: '%s'" % qualname_parts);
+#      self.debug("Qualified name parts: '%s'" % qualname_parts);
       if qualname_parts[-1]==name:
         return qualified_type # self value is the type we are looking for!
       the_class = getattr(qualified_type, name, None)
       if the_class:
         return the_class
       del qualname_parts[-1] # we just checked to see if name was part of the last element
-      self.debug("Qualified name parts to be processed:'%s'" % qualname_parts);
+#      self.debug("Qualified name parts to be processed:'%s'" % qualname_parts);
       obj = get_module_from_frame(frame)
       if obj:
-        self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+#        self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
         obj_list = [obj]
         for part in qualname_parts:
           if part!='<locals>':
             obj = getattr(obj, part, None)
             if obj:
-              self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+#              self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
               obj_list.append(obj)
             else:
-              self.debug("### FAILED finding object for part '%s' ###" % part)
+#              self.debug("### FAILED finding object for part '%s' ###" % part)
               return None
         for obj in reversed(obj_list):
-          self.debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+#          self.debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
           if inspect.isclass(obj) or inspect.ismodule(obj):
-            self.debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+#            self.debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
             the_class = getattr(obj, name, None)
             if the_class:
               return the_class

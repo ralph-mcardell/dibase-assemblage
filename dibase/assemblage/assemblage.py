@@ -39,7 +39,7 @@ class Assemblage(AssemblageBase):
     Otherwise a warning is logged to the Assemblage logger.
     '''
     if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
-      object._applyInner(action, seen_components, callers_frame)
+      object._applyInner(action, seen_components, callers_frame+1)
     else:
       self.__logger.warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
 
@@ -80,9 +80,9 @@ class Assemblage(AssemblageBase):
     if self.__elements:
       if Assemblage.isiterable(self.__elements):
         for e in self.__elements:
-          self.__apply(e, action, [], callers_frame)
+          self.__apply(e, action, [], callers_frame+1)
       else:
-          self.__apply(self.__elements, action, [], callers_frame)
+          self.__apply(self.__elements, action, [], callers_frame+1)
     else:
       self.__logger.warning("Assemblage is empty - no component elements to apply action to.")
   
@@ -107,5 +107,5 @@ class Assemblage(AssemblageBase):
     After an action has been applied any changed resource digests are written
     back to the Assemblage's digest cache.
     '''
-    self._applyInner(action, [], callers_frame=8)
+    self._applyInner(action, [], callers_frame=2)
     self.digestCache().writeBack()
