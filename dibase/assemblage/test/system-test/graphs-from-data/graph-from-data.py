@@ -47,6 +47,7 @@ from dibase.assemblage.shelfdigeststore import ShelfDigestStore
 import csv
 import logging
 import shelve
+import json
 
 class build: # action class
   @staticmethod
@@ -234,6 +235,113 @@ class GroupDataArchiver(Component):
           for dataset_name, dataset_map in input_store.items():
             output_store[dataset_name] = dataset_map
 
+class BarChartDescriptionCompiler(Component):
+  '''
+  Reads a JSON description of on e or more bar charts and constructs a
+  partial HTML5/SVG document that only requires 'linking' with the appropriate
+  group data archive to create a complete document that can be displayed in
+  a suitable browser.
+  '''
+  def __init__(self, name, assemblage, elements=[], logger=None):
+    '''
+    Passes all parameters on to the Component base.
+    Expects to compile exactly 1 (sub-)element representing the JSON file
+    to 'compile'.
+    '''
+    self.inputFilePath = None
+    for e in elements:
+      if type(e) is FileComponent:
+        if self.inputFilePath:
+          raise RuntimeError("BarChartDescriptionCompiler: more than 1 FileComponent elements to compile provided")
+        self.inputFilePath = e.normalisedPath()
+    if not self.inputFilePath:
+      raise RuntimeError("BarChartDescriptionCompiler: No FileComponent element to compile provided" )
+    super().__init__(name,assemblage,elements,logger)
+
+  def doesNotExist(self):
+    does_not_exist = not os.path.exists(str(self))
+    self.debug("Target file '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
+    return does_not_exist
+
+  def build_afterElementsActions(self):
+    '''
+    Loads the JSON input file.
+    Writes to the output file (str(self)) partial HTML5 text that will
+    display the described bar chart once 'linked' and fixed up with the data
+    source.
+    '''
+    class CheckedMapAccess:
+      def __init__(self, map, errmsg):
+        self.map = map
+        self.error_message = errmsg
+      def value(self, key):
+        if key not in self.map:
+          raise RuntimeError(self.error_message%{'key':key, 'map':str(self.map)})
+        return self.map[key]
+        
+    def makeStyle(decl):
+      checked_decl = CheckedMapAccess( decl
+                                    , "BarChartDescriptionCompiler.build_afterElementsActions:"
+                                      " Declaration:\n'%(map)s'\n Is missing its required '%(key)s' attribute.")
+      return "#%(i)s {float: %(p)s; height: %(h)s; width: %(w)s;}"\
+             %{ 'i':checked_decl.value('id'),'p':checked_decl.value('position')
+              , 'h':checked_decl.value('height'), 'w':checked_decl.value('width')
+              }
+    def checkAttribute(map, attr, msg):
+      if attr not in map:
+        raise RuntimeError(msg)
+
+    styles = ""
+    panels = {}
+    path = self.inputFilePath
+    self.debug("Processing graphs 'source' file data from JSON file: '%s'" % path )
+    doctitle = "Generated Bar charts"
+    with open(path) as src_file:
+      src = json.load(src_file)
+      for decl in src:
+        if type(decl) is not dict:
+          raise RuntimeError( "BarChartDescriptionCompiler.build_afterElementsActions:"
+                              " Expected JSON map, loaded as Python dict, describing panel or graph, found '%s'"
+                              % str(type(decl)) )
+        if 'panel' in decl:
+          syles = '\n'.join([styles, makeStyle(decl["panel"])])
+          panels[decl['panel']['id']] = {}
+        elif 'graph' in decl:
+          graph = decl["graph"]
+          checked_graph = CheckedMapAccess( graph
+                                        , "BarChartDescriptionCompiler.build_afterElementsActions:"
+                                          " Graph:\n'%(map)s'\n Is missing its required '%(key)s' attribute.")
+          syles = '\n'.join([styles, makeStyle(graph)])
+          graphspec = {}
+          checked_data = CheckedMapAccess( checked_graph.value('data')
+                                         , "BarChartDescriptionCompiler.build_afterElementsActions:"
+                                           " graph['data']:\n'%(map)s'\n Is missing its required '%(key)s' attribute.")
+          graphspec['dataset'] = checked_data.value('dataset')
+          graphspec['group'] = checked_data.value('group')
+          graphspec['field'] = checked_data.value('field')
+          graphspec['reducer'] = checked_graph.value('reducer')
+          graphspec['name'] = graph['name'] if 'name' in graph else ''
+          graphspec['units'] = graph['units'] if 'units' in graph else ''
+          checked_panels = CheckedMapAccess( panels
+                                           , "BarChartDescriptionCompiler.build_afterElementsActions:"
+                                             " Cannot add graph to undeclared panel '%(key)s'.")
+          checked_panels.value(checked_graph.value('panel'))[checked_graph.value('id')] = graphspec
+        elif 'doctitle' in decl:
+          doctitle = decl['doctitle']
+        else:
+          raise RuntimeError( "BarChartDescriptionCompiler.build_afterElementsActions:"
+                              " expected JSON object with 'panel' or 'graph' or 'doctitle' attribute, found:\n'%s'"
+                              % str(decl) )
+
+    chunks =  { 'prologue'  : "<!DOCTYPE html><html><head>"
+                              '<title>%s</title><meta charset="utf-8" />\n'% doctitle
+              , 'styles'    : '\n'.join(["<style>", styles, "</style>","</head>","<body>"])
+              , 'panels'    : panels
+              , 'epilogue'  : "</body></html>\n"
+              }
+    with shelve.open(str(self)) as store:
+      store["main"] = chunks
+
 class DirectoryComponent(Component):
   '''
   A simple sub-type of Component that ensures directories are created if
@@ -314,31 +422,47 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
     source_dir = os.path.abspath('./source')
     build_dir = os.path.abspath('./build')
     lib_dir = os.path.abspath('./lib')
+    graph_source_dir = './graph-source'
+    doc_dir = './doc'
     sales_original_filestem = 'SalesJan2009'
     group_data_lib_filestem = 'group-data'
     sales_original_data = '%(p)s/%(f)s.csv'%{'p':original_data_dir, 'f':sales_original_filestem}
     sales_source_file = '%(p)s/%(f)s.csv'%{'p':source_dir, 'f':sales_original_filestem}
     sales_object_file = '%(p)s/%(f)s.gdo'%{'p':build_dir, 'f':sales_original_filestem}
     group_data_lib_file = '%(p)s/lib-%(f)s.gda'%{'p':lib_dir, 'f':group_data_lib_filestem}
-    assm = Assemblage\
-            (
-              plan = Blueprint()
-                      .setDigestCache(DigestCache(ShelfDigestStore()))
-                      .addElements((source_dir,build_dir,lib_dir), DirectoryComponent)
-                      .addElements(sales_original_data, FileComponent)
-                      .addElements(sales_source_file, CSVDataMunger
-                                  , elements=[sales_original_data, source_dir]
-                                  , transformer=MungeSalesJan2009
-                                  )
-                      .addElements(sales_object_file, CSVGroupDataCompiler
-                                  , elements=[sales_source_file, build_dir]
-                                  )
-                      .addElements(group_data_lib_file, GroupDataArchiver
-                                  , elements=[sales_object_file, lib_dir]
-                                  )
-                      .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
-            ).apply('build')
-
+    sales_by_country_avg_graph_filestem = "sales-avg-by-country"
+    sales_by_country_avg_graph_src_file = '%(p)s/%(f)s.json'%{'p':graph_source_dir, 'f':sales_by_country_avg_graph_filestem}
+    sales_by_country_avg_graph_obj_file = '%(p)s/%(f)s.gpho'%{'p':build_dir, 'f':sales_by_country_avg_graph_filestem}
+    sales_by_country_avg_graph_doc_file = '%(p)s/%(f)s.html'%{'p':doc_dir, 'f':sales_by_country_avg_graph_filestem}
+    libAssm = Assemblage\
+              (
+                plan = Blueprint()
+                        .setDigestCache(DigestCache(ShelfDigestStore()))
+                        .addElements((source_dir,build_dir,lib_dir), DirectoryComponent)
+                        .addElements(sales_original_data, FileComponent)
+                        .addElements(sales_source_file, CSVDataMunger
+                                    , elements=[sales_original_data, source_dir]
+                                    , transformer=MungeSalesJan2009
+                                    )
+                        .addElements(sales_object_file, CSVGroupDataCompiler
+                                    , elements=[sales_source_file, build_dir]
+                                    )
+                        .addElements(group_data_lib_file, GroupDataArchiver
+                                    , elements=[sales_object_file, lib_dir]
+                                    )
+                        .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
+              )
+    gphAssm = Assemblage\
+              (
+                plan = Blueprint()
+                        .setDigestCache(DigestCache(ShelfDigestStore()))
+                        .addElements("group-data-assm", libAssm)
+                        .addElements((graph_source_dir, doc_dir, build_dir),DirectoryComponent)
+                        .addElements(sales_by_country_avg_graph_src_file, FileComponent)
+                        .addElements(sales_by_country_avg_graph_obj_file, BarChartDescriptionCompiler
+                                    , elements=[sales_by_country_avg_graph_src_file, build_dir]
+                                    )
+                        .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
+              ).apply('build')
 if __name__ == '__main__':
   unittest.main()
-        

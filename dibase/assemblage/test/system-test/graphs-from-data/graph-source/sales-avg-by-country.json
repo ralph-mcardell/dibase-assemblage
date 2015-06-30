@@ -1,0 +1,18 @@
+[ {"panel" :  { "id":"main"
+              , "width" : "100%"
+              , "height": "30%"
+              , "position" : "left"
+              }
+  }
+, {"graph" :  { "id":"sabc"
+              , "panel" : "main"
+              , "width" : "100%"
+              , "height": "30%"
+              , "position" : "left"
+              , "data" : {"dataset" : "SalesJan2009", "group":"Country", "field":"Price"}
+              , "units" : "Percent"
+              , "reducer" : "PercentTotal"
+              , "name" : "%(title)s - Country Percentages of Total Sales"
+              }
+  }
+]
