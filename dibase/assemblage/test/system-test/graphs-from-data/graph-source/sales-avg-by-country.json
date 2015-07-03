@@ -1,11 +1,17 @@
-[ {"panel" :  { "id":"main"
+[ {"panel" :  { "id":"top"
               , "width" : "100%"
               , "height": "30%"
               , "position" : "left"
               }
   }
-, {"graph" :  { "id":"sabc"
-              , "panel" : "main"
+, {"panel" :  { "id":"bottom"
+              , "width" : "100%"
+              , "height": "30%"
+              , "position" : "left"
+              }
+  }
+, {"graph" :  { "id":"spctbc"
+              , "panel" : "top"
               , "width" : "100%"
               , "height": "30%"
               , "position" : "left"
@@ -13,6 +19,17 @@
               , "units" : "Percent"
               , "reducer" : "PercentTotal"
               , "name" : "%(title)s - Country Percentages of Total Sales"
+              }
+  }
+, {"graph" :  { "id":"spctbs"
+              , "panel" : "bottom"
+              , "width" : "100%"
+              , "height": "30%"
+              , "position" : "left"
+              , "data" : {"dataset" : "SalesJan2009", "group":"State", "field":"Price"}
+              , "units" : "Percent"
+              , "reducer" : "PercentTotal"
+              , "name" : "%(title)s - State Percentages of Total Sales"
               }
   }
 ]
