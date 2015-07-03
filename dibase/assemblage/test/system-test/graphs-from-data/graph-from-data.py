@@ -197,7 +197,8 @@ class CSVGroupDataCompiler(FileComponent):
               data_to_write[group] = {}
             data_to_write[group][mbr] = {}
             for mbr_row in mbr_reader:
-              for mbr_fld,mbr_value in mbr_row.items():
+              for mbr_fld,mbr_strvalue in mbr_row.items():
+                mbr_value = float(mbr_strvalue)
                 if mbr_fld not in data_to_write[group][mbr]:
                   data_to_write[group][mbr][mbr_fld] = [mbr_value]
                 else:
@@ -235,7 +236,7 @@ class GroupDataArchiver(Component):
           for dataset_name, dataset_map in input_store.items():
             output_store[dataset_name] = dataset_map
 
-class BarChartDescriptionCompiler(Component):
+class BarChartDescriptionCompiler(FileComponent):
   '''
   Reads a JSON description of on e or more bar charts and constructs a
   partial HTML5/SVG document that only requires 'linking' with the appropriate
@@ -259,7 +260,7 @@ class BarChartDescriptionCompiler(Component):
     super().__init__(name,assemblage,elements,logger)
 
   def doesNotExist(self):
-    does_not_exist = not os.path.exists(str(self))
+    does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
     self.debug("Target file '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
     return does_not_exist
 
@@ -320,6 +321,8 @@ class BarChartDescriptionCompiler(Component):
           graphspec['group'] = checked_data.value('group')
           graphspec['field'] = checked_data.value('field')
           graphspec['reducer'] = checked_graph.value('reducer')
+          graphspec['height'] = checked_graph.value('height')
+          graphspec['width'] = checked_graph.value('width')
           graphspec['name'] = graph['name'] if 'name' in graph else ''
           graphspec['units'] = graph['units'] if 'units' in graph else ''
           checked_panels = CheckedMapAccess( panels
@@ -342,6 +345,229 @@ class BarChartDescriptionCompiler(Component):
     with shelve.open(str(self)) as store:
       store["main"] = chunks
 
+class BarChartDocumentLinker(Component):
+  def __init__(self, name, assemblage, elements=[], logger=None):
+    self.graphObjectFilePath = []
+    self.groupDataObjectFilePaths = []
+    for e in elements:
+      if type(e) is BarChartDescriptionCompiler:
+        self.graphObjectFilePath.append(e.normalisedPath())
+      elif type(e) is GroupDataArchiveFile:
+        self.groupDataObjectFilePaths.append(e.normalisedPath())
+    if not self.graphObjectFilePath:
+      raise RuntimeError("BarChartDocumentLinker: No input graph description object elements provided" )
+    elif len(self.graphObjectFilePath)!=1:
+      raise RuntimeError( "BarChartDocumentLinker: Too many input graph description object elements provided; expected 1, got %d" 
+                          % len(self.graphObjectFilePath)
+                        )
+    if not self.groupDataObjectFilePaths:
+      raise RuntimeError("BarChartDocumentLinker: No input group data archive elements provided" )
+    super().__init__(name,assemblage,elements,logger)
+
+  def doesNotExist(self):
+    does_not_exist = not os.path.exists(str(self))
+    self.debug("Target file(s) '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
+    return does_not_exist
+
+  def build_afterElementsActions(self):
+    '''
+    Opens and reads graph description object shelf file-set, extracts graph
+    descriptions looks for data-set in group data archives and if found uses
+    it to create bar chart group values using the appropriate reducer function
+    '''
+    def to_number(value_string):
+      return float(value_string.rstrip('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"£$%^&*()_-+={[}]~#@\':;?/><,|\\'))
+    def resolve_dataset(dataspec, libs):
+      for lib in libs:
+        if dataspec['dataset'] in lib:
+          return lib[dataspec['dataset']]
+      return None
+    
+    def reduce_group_data(data, reducer):
+      def Sum(data):
+        reduced = {}
+        for mbr,values in data.items():
+          sum = 0
+          for v in values:
+            sum = sum + v
+          reduced[mbr] = sum
+        return reduced
+      def PercentTotal(data):
+        sums = Sum(data)
+        reduced = {}
+        total = 0
+        for mbr_sum in sums.values():
+          total = total + mbr_sum
+        for mbr,sum in sums.items():
+          reduced[mbr] = sum*100.0/total
+        return reduced
+#      self.debug("Looking for function named '%(f)s' in local names: '%(l)s'"%{'l':locals(),'f':reducer})
+      fn = locals().get(reducer)
+      return fn(data) if fn else None
+    doc = ''
+    unresolved = []
+    libs = []
+    with shelve.open(self.graphObjectFilePath[0]) as graph_store:
+      try:
+        for gda_store_path in self.groupDataObjectFilePaths:
+          libs.append(shelve.open(gda_store_path))
+        doc = '\n'.join([graph_store['main']['prologue'],graph_store['main']['styles']])
+        for pid,graph in graph_store['main']['panels'].items():
+          doc = ''.join([doc,'\n<div id="',pid,'">\n'])
+          for gid,graphspec in graph.items():
+#            self.debug("Graph with id '%(id)s' has specification data: %(gs)s" % {'id':gid, 'gs':str(graphspec)})
+            dataset = resolve_dataset(graphspec, libs)
+            if not dataset:
+              unresolved.append(graphspec['dataset'])
+              continue
+            if graphspec['group'] not in dataset:
+              unresolved.append('.'.join([graphspec['dataset'],graphspec['group']]))
+              continue
+            groupData = {}
+            for mbr,mbrFlds in dataset[graphspec['group']].items():
+              if graphspec['field'] not in mbrFlds:
+                unresolved.append('.'.join([ graphspec['dataset']
+                                           , graphspec['group']
+                                           , mbr, graphspec['field']
+                                          ])
+                                 )
+                continue
+              groupData[mbr] = mbrFlds[graphspec['field']]
+            groupValues = reduce_group_data(groupData,graphspec['reducer'])
+            if not groupValues:
+              unresolved.append(''.join([ "Unknown reducer function '"
+                                        , graphspec['reducer'],"'."])
+                               )
+              continue
+            dataset_strings = {'title': dataset['__METADATA__']['__TITLE__']
+                              ,'name' : graphspec['dataset']
+                              }
+            w = to_number(graphspec['width'])
+            h = to_number(graphspec['height'])
+            min_extent = 10000
+            if h>w:
+              viewbox_h = int((h*min_extent)/w)
+              viewbox_w = min_extent
+            elif w>h:
+              viewbox_w = int((w*min_extent)/h)
+              viewbox_h = min_extent
+            else:
+              viewbox_h = min_extent
+              viewbox_w = min_extent
+            maxValue = 0.0 # note: assumes all values positive
+            for value in groupValues.values():
+              if value > maxValue:
+                maxValue = value
+            axisXOrigin = int(0.10 * float(viewbox_w))
+            axisYOrigin = int(0.85 * viewbox_h)
+            axisXExtent = int(0.98 * viewbox_w)
+            axisYExtent = int(0.10 * viewbox_h)
+            axisXLen = (axisXExtent-axisXOrigin)
+            axisYLen = (axisYOrigin-axisYExtent)
+            axixYMarkLen = int(0.010 * viewbox_w)
+            axixYMarkXExtent = axisXOrigin - axixYMarkLen
+            axixYMarkTextX = axisXOrigin - int(0.025*viewbox_w)
+            axixYMarkTextYOffset = int(0.002*viewbox_h)
+            axisYLabelX = int(0.02 * viewbox_w)
+            axisYLabelLenEstimate = len(graphspec['units'])*viewbox_h*0.05
+            axisYLabelY = axisYExtent + int((axisYLen+axisYLabelLenEstimate)/2.0)
+            axisLineWidth = 0.005*min_extent
+            barWidth = int((axisXLen-axisLineWidth) / len(groupValues))
+            self.debug( "viewbox width:%(vw)d  viewbox height:%(vh)d\n"
+                        "AXES: Origin(x,y):(%(axo)d,%(ayo)d) ; Extent(x,y):(%(axe)d,%(aye)d) ; Length(x,y):(%(axl)d,%(ayl)d) \n"
+                        "    ; YMarkLen:%(ayml)d ; YMarkXExtent:%(aymxe)d ; YMarkTextX: %(aymtx)d ; YMarkTextXOffset:%(aymtxo)d\n"
+                        "    ; YLabel(x,y):(%(aylx)d,%(ayly)d) ; YLabelLenEstimate:%(aylle)d ; LineWidth:%(alw)d\n"
+                        "BarWidth:%(bw)d"
+
+                        % {'vw':viewbox_w,'vh':viewbox_h
+                          ,'axo':axisXOrigin, 'ayo':axisYOrigin, 'axe':axisXExtent, 'aye':axisYExtent, 'axl':axisXLen, 'ayl':axisYLen
+                          ,'ayml':axixYMarkLen, 'aymxe':axixYMarkXExtent, 'aymtx':axixYMarkTextX, 'aymtxo':axixYMarkTextYOffset
+                          ,'aylx':axisYLabelX, 'ayly':axisYLabelY, 'aylle':axisYLabelLenEstimate, 'alw':axisLineWidth
+                          ,'bw':barWidth
+                          }
+                      )
+            colours = ('aquamarine', 'antiquewhite', 'cornflowerblue','coral'
+                      ,'palegreen', 'gold', 'deepskyblue','orchid','lightcyan'
+                      , 'tomato', 'plum', 'powderblue', 'khaki', 'salmon'
+                      , 'lightcyan', 'mediumpurple', 'palegoldenrod'
+                      , 'blanchedalmond'
+                      )
+            title = graphspec['name'] % dataset_strings
+            doc = ''.join([doc,'\n<svg id="',gid,'" version="1.1" '
+                               'baseProfile="full" '
+                               'xmlns="http://www.w3.org/2000/svg" '
+                               'viewBox="0 0 %(w)d %(h)d">\n'
+                               '<rect x="0" y="0" width="100%%" height="100%%" '
+                               'fill="none" stroke="black" stroke-width="0.25%%"/>'
+                               '<text id="bar1txt" x="7%%" y="7%%" '
+                               'font-family="Verdana" font-size="750">\n'
+                               '%(t)s\n</text>'
+                               %{'w':viewbox_w ,'h':viewbox_h,'t':title}
+                         ])
+            # axes
+            labelTextSize = int(min_extent*0.06)
+            doc = ''.join([doc, '\n   <line x1="%(xo)d" y1="%(yo)d" x2="%(xe)d" y2="%(yo)d" stroke="black" stroke-width="%(lw)d"/>'
+                                '\n   <line x1="%(xo)d" y1="%(yo)d" x2="%(xo)d" y2="%(ye)d" stroke="black" stroke-width="%(lw)d"/>'
+                                '\n   <text x="%(lx)d" y="%(ly)d" font-family="Verdana" font-size="%(fs)d"'
+                                ' transform="rotate(-90 %(rx)d,%(ry)d)">%(lt)s</text>'
+                               % {'xo':axisXOrigin, 'yo':axisYOrigin, 'xe':axisXExtent, 'ye':axisYExtent
+                                 ,'lx':viewbox_h-axisYLabelY, 'ly':viewbox_h, 'lw':axisLineWidth
+                                 ,'rx':axisYLabelX, 'ry': viewbox_h-labelTextSize
+                                 ,'fs':labelTextSize, 'lt':graphspec['units']
+                                 }
+                         ])
+            # Y-axis marks
+            yAxisNumberOfGradations = 10
+            labelFontSize = int(viewbox_h*0.02)
+            for i in range(yAxisNumberOfGradations+1):
+              markFraction = i/float(yAxisNumberOfGradations)
+              yAxisMarkPos = axisYOrigin - int(axisYLen*markFraction)
+              yAxisMarkValue = maxValue*markFraction
+              doc = ''.join([doc, '\n   <line x1="%(xo)d" y1="%(ym)d" x2="%(ymxe)d" y2="%(ym)d" stroke="black" stroke-width="%(lw)d"/>'
+                                  '\n   <text x="%(xot)d" y="%(ymt)d" font-family="Verdana" font-size="%(fs)d">%(v)02d</text>'
+                                  % {'xo':axisXOrigin, 'ym':yAxisMarkPos, 'ymxe':axixYMarkXExtent
+                                    ,'xot':axixYMarkTextX, 'ymt':yAxisMarkPos+axixYMarkTextYOffset
+                                    ,'lw':axisLineWidth ,'v':yAxisMarkValue, 'fs':labelFontSize}
+                           ])
+              
+              colourIndex = 0
+              barX = axisXOrigin + axisLineWidth
+              barYOrigin = axisYOrigin - axisLineWidth
+              textSize = barWidth-2 if barWidth>min_extent*0.005 else min_extent*0.005
+              barHeightScale = float(axisYLen)/float(maxValue)
+              for member, value in groupValues.items():
+                colour = colours[colourIndex]              
+                barHeight = int(value*barHeightScale)
+#                self.debug("barHeight(%(h)d) = (value(%(v)f)*barHeightScale(%(s)f))"
+#                            %{'h':barHeight, 'v':value, 's':barHeightScale})
+                barY = axisYOrigin - barHeight
+                doc = ''.join([doc, '\n   <rect id="%(i)s"  fill="%(c)s" x="%(x)d" y="%(y)d" width="%(w)d" height="%(h)d"/>'
+                                    '\n   <text x="%(lx)d" y="%(ly)d" font-family="Verdana" font-size="%(fs)d"'
+                                    ' transform="rotate(-90 %(rx)d,%(ry)d)">%(lt)s</text>'
+                                    % {'i':member, 'c':colour
+                                      ,'x':barX, 'y':barY, 'w':barWidth, 'h':barHeight
+                                      ,'lx':barX, 'ly':barYOrigin+textSize
+                                      ,'rx':barX, 'ry': barYOrigin
+                                      ,'fs':textSize, 'lt':member
+                                      }
+                             ])
+                barX = barX + barWidth
+                colourIndex = (colourIndex + 1)%len(colours)
+            doc = '\n'.join([doc,'<\svg>'])
+          doc = '\n'.join([doc,'<\div>'])
+        doc = '\n'.join([doc,graph_store['main']['epilogue']])
+      except:
+        for file in libs:
+          file.close()
+        raise
+      if unresolved:
+        errorMessage = "BarChartDocumentLinker.build_afterElementsActions: Unresolved names:"
+        for name in unresolved:
+          errorMessage = ''.join([errorMessage, '\n   ', name])
+        self.error(errorMessage)
+      else:
+        with open(str(self),'w') as docFile:
+          docFile.write(doc)
 class DirectoryComponent(Component):
   '''
   A simple sub-type of Component that ensures directories are created if
@@ -416,6 +642,25 @@ def MungeSalesJan2009(records):
           output['Country'][country]['__DATA__'].append(price) 
   return output
 
+class GroupDataArchiveFile(FileComponent):
+  def __init__(self, name, assemblage, elements=[], logger=None):
+    super().__init__(name,assemblage,elements,logger)
+
+# for demonstration purposes only re-build the library if it
+# does not exist - do not check to see if it has changed
+# this is probably not what would be wanted in a 'real-world' case!
+# Note: Assemblage does not support isOutOfDate, doesNotExist or hasChanged
+#       More stuff to think on
+  def build_queryProcessElements(self):
+  # only pass build action application on to elements if the library file(-set) does not exist.
+    return self.doesNotExist() 
+  def doesNotExist(self):
+    does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
+    self.debug("Target file '%(f)s' does not exist? %(b)s" % {'f':str(self), 'b':does_not_exist})
+    return does_not_exist
+  def isOutOfDate(self):
+    return False # don't bother re-building just in case library source has changed
+
 class SystemTestGraphsFromCSVData(unittest.TestCase):
   def test_build_from_Python_objects_element_processors(self):
     original_data_dir = os.path.abspath('./download')
@@ -456,11 +701,17 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
               (
                 plan = Blueprint()
                         .setDigestCache(DigestCache(ShelfDigestStore()))
-                        .addElements("group-data-assm", libAssm)
-                        .addElements((graph_source_dir, doc_dir, build_dir),DirectoryComponent)
+                        .addElements("group_data_lib_assemblage", libAssm)
+                        .addElements(group_data_lib_file, GroupDataArchiveFile
+                                    , elements=["group_data_lib_assemblage"]
+                                    )
+                        .addElements((doc_dir, build_dir),DirectoryComponent)
                         .addElements(sales_by_country_avg_graph_src_file, FileComponent)
                         .addElements(sales_by_country_avg_graph_obj_file, BarChartDescriptionCompiler
                                     , elements=[sales_by_country_avg_graph_src_file, build_dir]
+                                    )
+                        .addElements(sales_by_country_avg_graph_doc_file, BarChartDocumentLinker
+                                    , elements=[sales_by_country_avg_graph_obj_file, group_data_lib_file, doc_dir]
                                     )
                         .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
               ).apply('build')
