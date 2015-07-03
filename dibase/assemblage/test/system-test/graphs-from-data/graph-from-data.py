@@ -305,14 +305,14 @@ class BarChartDescriptionCompiler(FileComponent):
                               " Expected JSON map, loaded as Python dict, describing panel or graph, found '%s'"
                               % str(type(decl)) )
         if 'panel' in decl:
-          syles = '\n'.join([styles, makeStyle(decl["panel"])])
+          styles = '\n'.join([styles, makeStyle(decl["panel"])])
           panels[decl['panel']['id']] = {}
         elif 'graph' in decl:
           graph = decl["graph"]
           checked_graph = CheckedMapAccess( graph
                                         , "BarChartDescriptionCompiler.build_afterElementsActions:"
                                           " Graph:\n'%(map)s'\n Is missing its required '%(key)s' attribute.")
-          syles = '\n'.join([styles, makeStyle(graph)])
+          styles = '\n'.join([styles, makeStyle(graph)])
           graphspec = {}
           checked_data = CheckedMapAccess( checked_graph.value('data')
                                          , "BarChartDescriptionCompiler.build_afterElementsActions:"
@@ -335,7 +335,7 @@ class BarChartDescriptionCompiler(FileComponent):
           raise RuntimeError( "BarChartDescriptionCompiler.build_afterElementsActions:"
                               " expected JSON object with 'panel' or 'graph' or 'doctitle' attribute, found:\n'%s'"
                               % str(decl) )
-
+#    self.debug("Styles: '%s'"%styles)
     chunks =  { 'prologue'  : "<!DOCTYPE html><html><head>"
                               '<title>%s</title><meta charset="utf-8" />\n'% doctitle
               , 'styles'    : '\n'.join(["<style>", styles, "</style>","</head>","<body>"])
