@@ -91,6 +91,10 @@ class Component(ComponentBase):
   def debug(self, message):
     if self.__logger.isEnabledFor(logging.DEBUG):
       self.__logger.debug(self.__log_message(message,2))
+    
+  def error(self, message):
+    if self.__logger.isEnabledFor(logging.ERROR):
+      self.__logger.error(message)
 
   def assemblage(self):
     return self.__assemblage
