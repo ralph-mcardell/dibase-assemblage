@@ -2,3 +2,6 @@
 *.zip
 __MACOSX/
 source/
+build/
+lib/
+doc/
