@@ -299,6 +299,7 @@ class BarChartDescriptionCompiler(FileComponent):
     doctitle = "Generated Bar charts"
     with open(path) as src_file:
       src = json.load(src_file)
+      itemIndex = 0
       for decl in src:
         if type(decl) is not dict:
           raise RuntimeError( "BarChartDescriptionCompiler.build_afterElementsActions:"
@@ -306,7 +307,7 @@ class BarChartDescriptionCompiler(FileComponent):
                               % str(type(decl)) )
         if 'panel' in decl:
           styles = '\n'.join([styles, makeStyle(decl["panel"])])
-          panels[decl['panel']['id']] = {}
+          panels[decl['panel']['id']] = {'index':itemIndex, 'graph' : {}}
         elif 'graph' in decl:
           graph = decl["graph"]
           checked_graph = CheckedMapAccess( graph
@@ -325,16 +326,19 @@ class BarChartDescriptionCompiler(FileComponent):
           graphspec['width'] = checked_graph.value('width')
           graphspec['name'] = graph['name'] if 'name' in graph else ''
           graphspec['units'] = graph['units'] if 'units' in graph else ''
+          graphspec['index'] = itemIndex
+          
           checked_panels = CheckedMapAccess( panels
                                            , "BarChartDescriptionCompiler.build_afterElementsActions:"
                                              " Cannot add graph to undeclared panel '%(key)s'.")
-          checked_panels.value(checked_graph.value('panel'))[checked_graph.value('id')] = graphspec
+          checked_panels.value(checked_graph.value('panel'))['graph'][checked_graph.value('id')] = graphspec
         elif 'doctitle' in decl:
           doctitle = decl['doctitle']
         else:
           raise RuntimeError( "BarChartDescriptionCompiler.build_afterElementsActions:"
                               " expected JSON object with 'panel' or 'graph' or 'doctitle' attribute, found:\n'%s'"
                               % str(decl) )
+        itemIndex = itemIndex + 1
 #    self.debug("Styles: '%s'"%styles)
     chunks =  { 'prologue'  : "<!DOCTYPE html><html><head>"
                               '<title>%s</title><meta charset="utf-8" />\n'% doctitle
@@ -412,9 +416,10 @@ class BarChartDocumentLinker(Component):
         for gda_store_path in self.groupDataObjectFilePaths:
           libs.append(shelve.open(gda_store_path))
         doc = '\n'.join([graph_store['main']['prologue'],graph_store['main']['styles']])
-        for pid,graph in graph_store['main']['panels'].items():
+        for pid,panelData in sorted(graph_store['main']['panels'].items(), lambda itemTuple : itemTuple[1]['index']):
+          graph = panelData['graph']
           doc = ''.join([doc,'\n<div id="',pid,'">\n'])
-          for gid,graphspec in graph.items():
+          for gid,graphspec in sorted(graph.items(), lambda itemTuple : itemTuple[1]['index']):
 #            self.debug("Graph with id '%(id)s' has specification data: %(gs)s" % {'id':gid, 'gs':str(graphspec)})
             dataset = resolve_dataset(graphspec, libs)
             if not dataset:
