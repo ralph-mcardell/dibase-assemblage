@@ -49,7 +49,7 @@ import logging
 import shelve
 import json
 
-class build: # action class
+class BuildAction:
   @staticmethod
   def queryProcessElements(element): 
     return True   # we want to build elements we depend on
@@ -57,6 +57,8 @@ class build: # action class
   def queryDoAfterElementsActions(element):
      # we want to build ourself after elements we need have been if we need to
     return element.doesNotExist() or element.isOutOfDate()
+
+build = BuildAction # Demonstrate ability to create aliases for (action) classes
 
 class CSVDataMunger(FileComponent):
   def __init__(self, name, assemblage, elements=[], logger=None, transformer=None):
