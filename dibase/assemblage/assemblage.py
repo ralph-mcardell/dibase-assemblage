@@ -41,7 +41,7 @@ class Assemblage(AssemblageBase):
     if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
       object._applyInner(action, seen_components, callers_frame+1)
     else:
-      self.__logger.warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
+      self.logger().warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
 
   def __init__(self, plan):
     '''
@@ -51,6 +51,8 @@ class Assemblage(AssemblageBase):
     The plan parameter is assumed to provide:
       - a logger instance method callable as plan.logger() 
         and returning a Python logging.logger object (or equivalent).
+      - a digestChache instance method callable as plan.digestCache() 
+        and returning a dibase.assemblage.digestCache object (or equivalent).
       - a topLevelElements instance method callable as
         plan.topLevelElements() and returning either a single element object
         or an iterable sequence of element objects. Element objects should
@@ -58,8 +60,9 @@ class Assemblage(AssemblageBase):
         as provided by assemblage.Component and derivatives.
     The plan parameter's requirements are met by assemblage.Blueprint objects.
     '''
-    self.__logger = plan.logger()
-    self.__digest_cache = plan.digestCache()
+    self.__attributes = { '__logger__' : plan.logger()
+                        , '__store__'  : plan.digestCache()
+                        }
     self.__elements = plan.topLevelElements(self)
 
   def logger(self):
@@ -67,14 +70,14 @@ class Assemblage(AssemblageBase):
     Returns the assemblage logging.Logger object, provided by the plan object
     passed to Assemblage.__init__
     '''
-    return self.__logger
+    return self.__attributes['__logger__']
 
   def digestCache(self):
     '''
     ##stub -- TBD##
     Returns a digest cache object.
     '''
-    return self.__digest_cache
+    return self.__attributes['__store__']
 
   def _applyInner(self, action, seen_components, callers_frame=7):
     if self.__elements:
@@ -84,7 +87,7 @@ class Assemblage(AssemblageBase):
       else:
           self.__apply(self.__elements, action, [], callers_frame+1)
     else:
-      self.__logger.warning("Assemblage is empty - no component elements to apply action to.")
+      self.logger().warning("Assemblage is empty - no component elements to apply action to.")
   
   def apply(self, action):
     '''
