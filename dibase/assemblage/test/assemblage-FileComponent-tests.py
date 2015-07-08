@@ -16,6 +16,8 @@ project_root_dir = os.path.dirname(
                       )      # assemblage directory 
                     )        # dibase directory 
                   )          # project directory
+if project_root_dir not in sys.path:
+  sys.path.insert(0, project_root_dir)
 from dibase.assemblage.filecomponent import FileComponent
 from dibase.assemblage.interfaces import AssemblageBase,DigestCacheBase
 
@@ -42,59 +44,61 @@ class SpoofDigestCache(DigestCacheBase):
     self.updated = {}
     self.dirty = []
 
-class NullAssemblage(AssemblageBase):
-  def _applyInner(self, action, seen_components, callers_frame=7):
-    pass
-  def apply(self, action):
-    pass
-  def logger(self):
-    pass
-  def digestCache(self):
-    pass
-class DigestCacheAssemblage(NullAssemblage):
-  def __init__(self):
-    self.cache = SpoofDigestCache()
-  def digestCache(self):
-    return self.cache
+testAttributes = {'__logger__' : None, '__store__' : SpoofDigestCache()}
+
+#class NullAssemblage(AssemblageBase):
+#  def _applyInner(self, action, seen_components, callers_frame=7):
+#    pass
+#  def apply(self, action):
+#    pass
+#  def logger(self):
+#    pass
+#  def digestCache(self):
+#    pass
+#class DigestCacheAssemblage(NullAssemblage):
+#  def __init__(self):
+#    self.cache = SpoofDigestCache()
+#  def digestCache(self):
+#    return self.cache
 
 class TestAssemblageFileComponent(unittest.TestCase):
   def test_DoesNotExist_is_True_for_non_existent_file(self):
-    fc = FileComponent("./nosuchfile.tst",NullAssemblage())
+    fc = FileComponent("./nosuchfile.tst",{})
     self.assertTrue(fc.doesNotExist())
   def test_DoesNotExist_is_False_for_existent_file(self):
     with tempfile.NamedTemporaryFile() as tf:
-      fc = FileComponent(tf.name,NullAssemblage())
+      fc = FileComponent(tf.name,{})
       self.assertFalse(fc.doesNotExist())
   def test_hasChanged_True_for_new_FileComponents(self):
     tf = tempfile.NamedTemporaryFile(delete=False)
-    fc = FileComponent(tf.name,DigestCacheAssemblage())
+    fc = FileComponent(tf.name,testAttributes)
     tf.close()
     self.assertTrue(fc.hasChanged())
     self.assertTrue(fc.hasChanged()) # still changed until written back
     os.remove(fc.normalisedPath())
   def test_hasChanged_False_for_unchanged_FileComponent_files_after_digestCache_writeBack(self):
     tf = tempfile.NamedTemporaryFile(delete=False)
-    dca = DigestCacheAssemblage()
-    fc = FileComponent(tf.name,dca)
+    ta = testAttributes
+    fc = FileComponent(tf.name,ta)
     tf.close()
     self.assertTrue(fc.hasChanged())
-    dca.digestCache().writeBack()
+    ta['__store__'].writeBack()
     self.assertFalse(fc.hasChanged())
     os.remove(fc.normalisedPath())
   def test_hasChanged_True_for_changed_FileComponent_files_after_digestCache_writeBack(self):
     tf = tempfile.NamedTemporaryFile(delete=False)
-    dca = DigestCacheAssemblage()
-    fc = FileComponent(tf.name,dca)
+    ta = testAttributes
+    fc = FileComponent(tf.name,ta)
     tf.close()
     self.assertTrue(fc.hasChanged())
-    dca.digestCache().writeBack()
+    ta['__store__'].writeBack()
     with open(fc.normalisedPath(), "w") as f:
       f.write("test")
     self.assertTrue(fc.hasChanged())
     os.remove(fc.normalisedPath())
   def test_hasChanged_receives_RuntimeError_if_file_does_not_exist(self):
-    dca = DigestCacheAssemblage()
-    fc = FileComponent("./nosuchfile.tst",dca)
+    ta = testAttributes
+    fc = FileComponent("./nosuchfile.tst",ta)
     with self.assertRaises(RuntimeError):
       fc.hasChanged()
     try:

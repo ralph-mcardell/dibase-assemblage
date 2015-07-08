@@ -15,6 +15,8 @@ project_root_dir = os.path.dirname(
                       )      # assemblage directory 
                     )        # dibase directory 
                   )          # project directory
+if project_root_dir not in sys.path:
+  sys.path.insert(0, project_root_dir)
 from dibase.assemblage.shelfdigeststore import ShelfDigestStore
 
 class TestAssemblageDigestStore(unittest.TestCase):

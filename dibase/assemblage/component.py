@@ -33,16 +33,16 @@ class Component(ComponentBase):
   a valid Python identifier) to the component. The action is used to determine
   what action steps to perform and what those steps are.
   '''
-  def __init__(self, name, assemblage, elements=[], logger=None):
+  def __init__(self, name, attributes, elements=[], logger=None):
     self.__name = name
-    self.__assemblage = assemblage
+    self.__attributes = attributes
     self.__elements = elements
     if type(logger) is logging.Logger:
       self.__logger = logger  
     elif type(logger) is str:
       self.__logger = logging.getLogger(logger)
-    elif assemblage.logger():
-      self.__logger = assemblage.logger()
+    elif '__logger__' in attributes and attributes['__logger__']:
+      self.__logger = attributes['__logger__']
     else:
       self.__logger = logging.getLogger()
     self.debug("Created %s"%repr(self))
@@ -96,8 +96,8 @@ class Component(ComponentBase):
     if self.__logger.isEnabledFor(logging.ERROR):
       self.__logger.error(message)
 
-  def assemblage(self):
-    return self.__assemblage
+#  def assemblage(self):
+#    return self.__assemblage
 
   def __get_class_in_callers_scope(self, name, start_frame=2):
     def get_module_from_frame(frame):
@@ -327,6 +327,7 @@ class Component(ComponentBase):
     Passes self onto the assemblage digest cache which compares
     current Component.digest() value with the previous cached/stored value.
     '''
-    has_changed = self.__assemblage.digestCache().updateIfDifferent(self)
+    has_changed = self.__attributes['__store__'].updateIfDifferent(self)\
+                  if '__store__' in self.__attributes else False
     self.debug("Checking if Component has changed: %s"%has_changed)
     return has_changed

@@ -102,8 +102,9 @@ class Blueprint(AssemblagePlanBase):
     '''
     Initialise an empty Blueprint object having no logger or elements.
     '''
-    self.__log = None
-    self.__digest_cache = None
+    self.__attributes = { '__logger__' : None
+                        , '__store__'  : None
+                        }
     self.__element_specs_by_group = {}
     self.__element_specs_by_name = {}
     self.__non_root_elements = set()
@@ -113,31 +114,39 @@ class Blueprint(AssemblagePlanBase):
     Internal method to set a default logging.Logger to use should there not
     have been one set at the time the logger method is called.
     '''
-    self.__log = logging.getLogger("assemblage.default")
-    self.__log.propagate = False
-    if not self.__log.hasHandlers():
+    log = logging.getLogger("assemblage.default")
+    log.propagate = False
+    if not log.hasHandlers():
       loghdr = logging.StreamHandler(stream=sys.stdout)
       loghdr.setLevel(logging.DEBUG)
       formatter = logging.Formatter('%(levelname)s: %(message)s')
       loghdr.setFormatter(formatter)
-      self.__log.addHandler(loghdr)
-      self.__log.setLevel(logging.INFO)
+      log.addHandler(loghdr)
+      log.setLevel(logging.INFO)
+    self.__attributes['__logger__'] = log
+
+  def attributes(self):
+    '''
+    Returns the attributes map - intended primarily to be used by Assemblage
+    __init__ to get a reference to the map.
+    '''
+    return self.__attributes
 
   def logger(self):
     '''
     Returns the logging.Logger instance associated with this Blueprint. If
     when called there is no associated logger then a default one is provided.
     '''
-    if not self.__log:
+    if not self.__attributes['__logger__']:
       self.__set_default_logger()
-    return self.__log
+    return self.__attributes['__logger__']
 
   def setLogger(self, logger):
     '''
     Set a pre-configured logging.Logger (or equivalent) object to be the 
     logger object currently associated with a Blueprint object.
     '''
-    self.__log = logger
+    self.__attributes['__logger__'] = logger
     return self
 
   def setDigestCache(self, digest_cache):
@@ -145,7 +154,7 @@ class Blueprint(AssemblagePlanBase):
     Set a value for the assemblage.interfaces.DigestCacheBase compatible
     element resource digest cache used to support resource change detection.
     '''
-    self.__digest_cache = digest_cache
+    self.__attributes['__store__'] = digest_cache
     return self
 
   def digestCache(self):
@@ -153,9 +162,9 @@ class Blueprint(AssemblagePlanBase):
     Return the value of the previously set assemblage.interfaces.DigestCacheBase
     compatible object.
     '''
-    return self.__digest_cache
+    return self.__attributes['__store__']
 
-  def topLevelElements(self, assemblage):
+  def topLevelElements(self):
     '''
     Returns a list of top level root elements to which actions may be applied.
     The list might be empty. Top level elements are each roots of an acyclic 
@@ -164,7 +173,7 @@ class Blueprint(AssemblagePlanBase):
     is passed to all elements constructed as the assemblage argument.
     '''
 
-    def add_element_from_specification(specification, assemblage, elements, seen_elements):
+    def add_element_from_specification(specification, elements, seen_elements):
       '''
       Internal helper method for topLevelElememnts. Creates an element. 
       First recursively creates any of its (sub-)elements that do not yet exist.
@@ -185,13 +194,13 @@ class Blueprint(AssemblagePlanBase):
           subelements.append(elements[subname])
         else: # element not created yet - go make it
           if subname in self.__element_specs_by_name:
-            add_element_from_specification(self.__element_specs_by_name[subname], assemblage, elements, seen_elements)
+            add_element_from_specification(self.__element_specs_by_name[subname], elements, seen_elements)
             subelements.append(elements[subname])
           else:
             raise RuntimeError("Element undefined: No element added with name '%(e)s'" % {'e':subname})
       if inspect.isclass(specification.kind):
         elements[specification.name] = \
-          (specification.kind(name=specification.name,assemblage=assemblage
+          (specification.kind(name=specification.name,attributes=self.__attributes 
           ,elements=subelements,logger=specification.logger,**specification.args))
       else:
         elements[specification.name] = specification.kind
@@ -201,7 +210,7 @@ class Blueprint(AssemblagePlanBase):
       if not es.logger:
         es.logger = self.logger()
       if es.name not in elements.keys():
-        add_element_from_specification(es, assemblage, elements, seen_elements=[])
+        add_element_from_specification(es, elements, seen_elements=[])
     tlelements = []
     for ename, element in elements.items():
       if ename not in self.__non_root_elements:

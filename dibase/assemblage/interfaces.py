@@ -82,6 +82,18 @@ class AssemblagePlanBase(metaclass=ABCMeta):
     detection support
     '''
     pass
+  '''
+  Defines methods that are expected in an assemblage plan that can be used to
+  construct an assemblage object.
+  '''
+  @abstractmethod
+  def attributes(self):
+    '''
+    Returns an attributes map object that is used as an assemblage's assemblage
+    scope attributes - including '__logger__', and '__store__' for the logger
+    and digestCache store.
+    '''
+    pass
   @abstractmethod
   def topLevelElements(self):
     '''

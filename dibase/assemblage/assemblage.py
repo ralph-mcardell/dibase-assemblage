@@ -11,6 +11,7 @@ License: dual: GPL or BSD.
 '''
 
 from .interfaces import AssemblageBase
+import inspect
 
 class Assemblage(AssemblageBase):
   '''
@@ -60,10 +61,8 @@ class Assemblage(AssemblageBase):
         as provided by assemblage.Component and derivatives.
     The plan parameter's requirements are met by assemblage.Blueprint objects.
     '''
-    self.__attributes = { '__logger__' : plan.logger()
-                        , '__store__'  : plan.digestCache()
-                        }
-    self.__elements = plan.topLevelElements(self)
+    self.__attributes = plan.attributes()
+    self.__elements = plan.topLevelElements()
 
   def logger(self):
     '''
@@ -110,5 +109,7 @@ class Assemblage(AssemblageBase):
     After an action has been applied any changed resource digests are written
     back to the Assemblage's digest cache.
     '''
+    self.__attributes['__scope__'] = inspect.stack()[1]
+    self.__attributes['__seen_elements__'] = []
     self._applyInner(action, [], callers_frame=2)
     self.digestCache().writeBack()
