@@ -416,10 +416,10 @@ class BarChartDocumentLinker(Component):
         for gda_store_path in self.groupDataObjectFilePaths:
           libs.append(shelve.open(gda_store_path))
         doc = '\n'.join([graph_store['main']['prologue'],graph_store['main']['styles']])
-        for pid,panelData in sorted(graph_store['main']['panels'].items(), lambda itemTuple : itemTuple[1]['index']):
+        for pid,panelData in sorted(graph_store['main']['panels'].items(), key=lambda itemTuple : itemTuple[1]['index']):
           graph = panelData['graph']
           doc = ''.join([doc,'\n<div id="',pid,'">\n'])
-          for gid,graphspec in sorted(graph.items(), lambda itemTuple : itemTuple[1]['index']):
+          for gid,graphspec in sorted(graph.items(), key=lambda itemTuple : itemTuple[1]['index']):
 #            self.debug("Graph with id '%(id)s' has specification data: %(gs)s" % {'id':gid, 'gs':str(graphspec)})
             dataset = resolve_dataset(graphspec, libs)
             if not dataset:
