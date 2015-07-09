@@ -61,7 +61,7 @@ class BuildAction:
 build = BuildAction # Demonstrate ability to create aliases for (action) classes
 
 class CSVDataMunger(FileComponent):
-  def __init__(self, name, assemblage, elements=[], logger=None, transformer=None):
+  def __init__(self, name, attributes, elements=[], logger=None, transformer=None):
     '''
     Passes all parameters but transformer on to the Component base.
     The transformer parameter should specify a data transformation callable.
@@ -76,7 +76,7 @@ class CSVDataMunger(FileComponent):
         self.inputFilePath = e.normalisedPath()
     if not self.inputFilePath:
       raise RuntimeError("CSVDataMunger: No input FileComponent element provided" )
-    super().__init__(name,assemblage,elements,logger)
+    super().__init__(name,attributes,elements,logger)
     self.xform = transformer
 
   def doesNotExist(self):
@@ -150,7 +150,7 @@ class CSVDataMunger(FileComponent):
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
 
 class CSVGroupDataCompiler(FileComponent):
-  def __init__(self, name, assemblage, elements=[], logger=None):
+  def __init__(self, name, attributes, elements=[], logger=None):
     self.inputFilePath = None
     for e in elements:
       if type(e) is CSVDataMunger:
@@ -159,7 +159,7 @@ class CSVGroupDataCompiler(FileComponent):
         self.inputFilePath = e.normalisedPath()
     if not self.inputFilePath:
       raise RuntimeError("CSVGroupDataCompiler: No input CSVDataMunger element provided" )
-    super().__init__(name,assemblage,elements,logger)
+    super().__init__(name,attributes,elements,logger)
 
   def doesNotExist(self):
     does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
@@ -214,14 +214,14 @@ class CSVGroupDataCompiler(FileComponent):
         store[main_name] = data_to_write
 
 class GroupDataArchiver(Component):
-  def __init__(self, name, assemblage, elements=[], logger=None):
+  def __init__(self, name, attributes, elements=[], logger=None):
     self.inputFilePaths = []
     for e in elements:
       if type(e) is CSVGroupDataCompiler:
         self.inputFilePaths.append(e.normalisedPath())
     if not self.inputFilePaths:
       raise RuntimeError("GroupDataArchiver: No input CSVGroupDataCompiler elements provided" )
-    super().__init__(name,assemblage,elements,logger)
+    super().__init__(name,attributes,elements,logger)
 
   def doesNotExist(self):
     does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
@@ -245,7 +245,7 @@ class BarChartDescriptionCompiler(FileComponent):
   group data archive to create a complete document that can be displayed in
   a suitable browser.
   '''
-  def __init__(self, name, assemblage, elements=[], logger=None):
+  def __init__(self, name, attributes, elements=[], logger=None):
     '''
     Passes all parameters on to the Component base.
     Expects to compile exactly 1 (sub-)element representing the JSON file
@@ -259,7 +259,7 @@ class BarChartDescriptionCompiler(FileComponent):
         self.inputFilePath = e.normalisedPath()
     if not self.inputFilePath:
       raise RuntimeError("BarChartDescriptionCompiler: No FileComponent element to compile provided" )
-    super().__init__(name,assemblage,elements,logger)
+    super().__init__(name,attributes,elements,logger)
 
   def doesNotExist(self):
     does_not_exist = not os.path.exists('.'.join([str(self),'dat'])) # shelves use 3 files .dat, .bak and .dir
@@ -352,7 +352,7 @@ class BarChartDescriptionCompiler(FileComponent):
       store["main"] = chunks
 
 class BarChartDocumentLinker(Component):
-  def __init__(self, name, assemblage, elements=[], logger=None):
+  def __init__(self, name, attributes, elements=[], logger=None):
     self.graphObjectFilePath = []
     self.groupDataObjectFilePaths = []
     for e in elements:
@@ -368,7 +368,7 @@ class BarChartDocumentLinker(Component):
                         )
     if not self.groupDataObjectFilePaths:
       raise RuntimeError("BarChartDocumentLinker: No input group data archive elements provided" )
-    super().__init__(name,assemblage,elements,logger)
+    super().__init__(name,attributes,elements,logger)
 
   def doesNotExist(self):
     does_not_exist = not os.path.exists(str(self))
@@ -581,8 +581,8 @@ class DirectoryComponent(Component):
   they do not exist regardless of action so long as an action query function
   calls doesNotExist.
   '''
-  def __init__(self, name, assemblage, elements=[], logger=None):
-    super().__init__(name,assemblage,elements,logger)
+  def __init__(self, name, attributes, elements=[], logger=None):
+    super().__init__(name,attributes,elements,logger)
 
   def doesNotExist(self):
     '''
@@ -650,8 +650,8 @@ def MungeSalesJan2009(records):
   return output
 
 class GroupDataArchiveFile(FileComponent):
-  def __init__(self, name, assemblage, elements=[], logger=None):
-    super().__init__(name,assemblage,elements,logger)
+  def __init__(self, name, attributes, elements=[], logger=None):
+    super().__init__(name,attributes,elements,logger)
 
 # for demonstration purposes only re-build the library if it
 # does not exist - do not check to see if it has changed

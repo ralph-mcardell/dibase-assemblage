@@ -23,11 +23,11 @@ class FileComponent(Component):
   The main effect on the behaviour is to provide a digest method that returns
   an MD5 digest of the contents of the file.
   '''
-  def __init__(self, name, assemblage, elements=[], logger=None):
+  def __init__(self, name, attributes, elements=[], logger=None):
     '''
     Passes all parameters on to the Component base.
     '''
-    super().__init__(name,assemblage,elements,logger)
+    super().__init__(name,attributes,elements,logger)
     self.path = None # filled in as late as possible
   def normalisedPath(self):
     '''
