@@ -63,8 +63,8 @@ class SpoofDigestCache(DigestCacheBase):
 testAttributes = {'__logger__' : None, '__store__' : SpoofDigestCache()}
 
 class TestAssemblageComponent(unittest.TestCase):
-  log_level = logging.INFO 
-#  log_level = logging.DEBUG
+#  log_level = logging.INFO 
+  log_level = logging.DEBUG
   log_output = io.StringIO()
   logger = None
   show_log = False
@@ -256,8 +256,9 @@ class TestAssemblageComponent(unittest.TestCase):
         self.apply_called = True
         super().apply(action)
 #    self.show_log = True
-    child = NeverDoAnyProcessingComponent('child', {}, logger=self.logger)
-    root = NeverDoAnyProcessingComponent('root', {}, elements=[child], logger=self.logger)
+    assmattribs = {}
+    child = NeverDoAnyProcessingComponent('child', assmattribs, logger=self.logger)
+    root = NeverDoAnyProcessingComponent('root', assmattribs, elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
@@ -273,14 +274,14 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(child.query_elements)
   def test_apply_does_action_steps_methods_if_query_action_methods_return_True_for_subclass_methods(self):
     class AlwaysDoAllComponent(Component):
-      def __init__(self,name,assm,elements=[],logger=None):
+      def __init__(self,name,attr,elements=[],logger=None):
         self.query_before = False
         self.query_after = False
         self.query_elements = False
         self.before = False
         self.after = False
         self.apply_called = False
-        super().__init__(name,assm,elements,logger)
+        super().__init__(name,attr,elements,logger)
       def someAction_queryDoBeforeElementsActions(self):
         self.query_before = True
         return True
@@ -298,8 +299,9 @@ class TestAssemblageComponent(unittest.TestCase):
         self.apply_called = True
         super().apply(action)
 #    self.show_log = True
-    child = AlwaysDoAllComponent('child', {}, logger=self.logger)
-    root = AlwaysDoAllComponent('root', {}, elements=[child], logger=self.logger)
+    assmattribs = {}
+    child = AlwaysDoAllComponent('child', assmattribs, logger=self.logger)
+    root = AlwaysDoAllComponent('root', assmattribs, elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
@@ -339,8 +341,9 @@ class TestAssemblageComponent(unittest.TestCase):
       def afterElementsActions(cls,element):
         cls.after = True
 #    self.show_log = True
-    child = Component('child', {}, logger=self.logger)
-    root = Component('root', {}, elements=[child], logger=self.logger)
+    assmattribs = {}
+    child = Component('child', assmattribs, logger=self.logger)
+    root = Component('root', assmattribs, elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(someAction.query_before)
     self.assertTrue(someAction.query_after)
@@ -373,8 +376,9 @@ class TestAssemblageComponent(unittest.TestCase):
       def afterElementsActions(cls,element):
         cls.after = True
 #    self.show_log = True
-    child = Component('child', {}, logger=self.logger)
-    root = Component('root', {}, elements=[child], logger=self.logger)
+    assmattribs = {}
+    child = Component('child', assmattribs, logger=self.logger)
+    root = Component('root', assmattribs, elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(someAction.query_before)
     self.assertTrue(someAction.query_after)
@@ -407,8 +411,9 @@ class TestAssemblageComponent(unittest.TestCase):
       cls.after = True
   def test_apply_finds_action_class_defined_in_a_callers_outer_scope(self):
 #    self.show_log = True
-    child = Component('child', {}, logger=self.logger)
-    root = Component('root', {}, elements=[child], logger=self.logger)
+    assmattribs = {}
+    child = Component('child', assmattribs, logger=self.logger)
+    root = Component('root', assmattribs, elements=[child], logger=self.logger)
     root.apply('someClassScopeAction')
     self.assertTrue(self.someClassScopeAction.query_before)
     self.assertTrue(self.someClassScopeAction.query_after)
@@ -417,8 +422,9 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(self.someClassScopeAction.after)
   def test_apply_finds_action_class_defined_in_callers_module_scope(self):
 #    self.show_log = True
-    child = Component('child', {}, logger=self.logger)
-    root = Component('root', {}, elements=[child], logger=self.logger)
+    assmattribs = {}
+    child = Component('child', assmattribs, logger=self.logger)
+    root = Component('root', assmattribs, elements=[child], logger=self.logger)
     root.apply('someModuleScopeAction')
     self.assertTrue(someModuleScopeAction.query_before)
     self.assertTrue(someModuleScopeAction.query_after)
@@ -427,12 +433,13 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(someModuleScopeAction.after)
   def test_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references(self):
   #  self.show_log = True
+    assmattribs = {}
     grandchild2_children = []
-    grandchild1 = Component('grandchild1', {}, logger=self.logger)
-    child1 = Component('child1', {}, elements=[grandchild1], logger=self.logger)
-    grandchild2 = Component('grandchild2', {}, elements=grandchild2_children, logger=self.logger)
-    child2 = Component('child2', {}, elements=[grandchild2], logger=self.logger)
-    root = Component('root', {}, elements=[child1,child2], logger=self.logger)
+    grandchild1 = Component('grandchild1', assmattribs, logger=self.logger)
+    child1 = Component('child1', assmattribs, elements=[grandchild1], logger=self.logger)
+    grandchild2 = Component('grandchild2', assmattribs, elements=grandchild2_children, logger=self.logger)
+    child2 = Component('child2', assmattribs, elements=[grandchild2], logger=self.logger)
+    root = Component('root', assmattribs, elements=[child1,child2], logger=self.logger)
     grandchild2_children.append(root) # Ooops!
     with self.assertRaises(RuntimeError):
       root.apply('someModuleScopeAction')

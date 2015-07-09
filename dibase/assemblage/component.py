@@ -212,13 +212,14 @@ class Component(ComponentBase):
     def do_after_elements_actions(action, callers_frame=4):
       resolve_and_call_function(action, 'afterElementsActions', callers_frame+1)
 
-    if self in seen_components:
+    self.debug("Component attributes: '%s'" % self.__attributes)
+    if self in self.__attributes['__seen_elements__']:
       raise RuntimeError( self.__log_message( "Circular reference: already tried to "
                                               "apply action '%(a)s' to element '%(e)s'"
                                               % {'e':str(self), 'a':action}
                                             )
                         )
-    seen_components.append(self)
+    self.__attributes['__seen_elements__'].append(self)
     self.debug("apply('%s): Querying do before actions" % action)
     callers_frame = callers_frame + 1
     if query_do_before_elements_actions(action, callers_frame):
@@ -234,7 +235,7 @@ class Component(ComponentBase):
     if query_do_after_elements_actions(action, callers_frame):
       self.debug("Passed check, doing after actions")
       do_after_elements_actions(action, callers_frame)
-    seen_components.remove(self)
+    self.__attributes['__seen_elements__'].remove(self)
 
   def apply(self, action):
     '''
@@ -279,6 +280,8 @@ class Component(ComponentBase):
     to be either class or static methods taking (other than the cls parameter
     for class methods) only the Component as a parameter.
     '''
+    self.__attributes['__scope__'] = inspect.stack()[1]
+    self.__attributes['__seen_elements__'] = []
     self._applyInner(action, [], callers_frame=2)
   def digest(self):
     '''
