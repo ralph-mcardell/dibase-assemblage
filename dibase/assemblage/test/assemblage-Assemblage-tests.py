@@ -22,7 +22,7 @@ from dibase.assemblage.assemblage import Assemblage
 from dibase.assemblage.interfaces import AssemblagePlanBase,DigestCacheBase
 
 class Component:
-  def _applyInner(self, action, seen_components, callers_frame=7):
+  def _applyInner(self, action):
     pass
   def apply(self, action):
     pass
@@ -30,13 +30,13 @@ class Component:
 class NoteApplyCalls:
   def __init__(self):
     self.applyCount = 0
-  def _applyInner(self, action, seen_components, callers_frame=7):
+  def _applyInner(self, action):
     self.applyCount = self.applyCount + 1
 
 class NoteLastAppliedAction:
   def __init__(self):
     self.lastAction = ''
-  def _applyInner(self, action, seen_components, callers_frame=7):
+  def _applyInner(self, action):
     self.lastAction = action
 
 class NotApplicable:

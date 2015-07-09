@@ -99,7 +99,7 @@ class Component(ComponentBase):
 #  def assemblage(self):
 #    return self.__assemblage
 
-  def __get_class_in_callers_scope(self, name, start_frame=2):
+  def __get_class_in_callers_scope(self, name):
     def get_module_from_frame(frame):
       module_name = frame.f_globals['__name__']
       if module_name in sys.modules:
@@ -115,10 +115,9 @@ class Component(ComponentBase):
       return mapstr
 
 #    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
-    frames = inspect.stack()
-    if len(frames) < start_frame:
+    if '__scope__' not in self.__attributes:
       return None
-    frame = frames[start_frame][0]
+    frame = self.__attributes['__scope__'][0]
     flocals = frame.f_locals
 #    self.debug("FRAME  LOCALS:%s" % strmap(flocals))
 #    self.debug("FRAME GLOBALS:%s" % strmap(frame.f_globals))
@@ -169,14 +168,14 @@ class Component(ComponentBase):
               return the_class
     return None
 
-  def __get_class_qualname_in_callers_scope(self, name, start_frame=2):
-    the_class = get_class_in_callers_scope(name, start_frame+1) # exclude our frame
+  def __get_class_qualname_in_callers_scope(self, name):
+    the_class = get_class_in_callers_scope(name)
     if the_class:
 #      self.debug("   Returning '%s'" % '.'.join([the_class.__module__,the_class.__qualname__]))
       return '.'.join([the_class.__module__,the_class.__qualname__])
     return None
   
-  def __resolver(self,action, action_method_name, callers_frame=2):
+  def __resolver(self,action, action_method_name):
       self.debug("apply('%(a)s): Resolving function '%(f)s'"
                          % {'a':action,'f':action_method_name})
       self_method_name = ''.join([action,'_', action_method_name])
@@ -185,7 +184,7 @@ class Component(ComponentBase):
         self.debug("Found method 'self.%s'"%self_method_name)
         return method
       else:
-        action_class = self.__get_class_in_callers_scope(action,callers_frame+1)
+        action_class = self.__get_class_in_callers_scope(action)
         if action_class:
           method = getattr(action_class, action_method_name, False)
           if method:
@@ -197,20 +196,20 @@ class Component(ComponentBase):
           self.debug("!! class '%s' not found !!" % action)
         return False
  
-  def _applyInner(self, action, callers_frame=5):
-    def resolve_and_call_function(action, action_method_name, callers_frame=3):
-      func = self.__resolver(action, action_method_name, callers_frame+1)
+  def _applyInner(self, action):
+    def resolve_and_call_function(action, action_method_name, ):
+      func = self.__resolver(action, action_method_name)
       return func and func()
-    def query_do_before_elements_actions(action, callers_frame=4):
-      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', callers_frame+1)
-    def query_do_after_elements_actions(action, callers_frame=4):
-      return resolve_and_call_function(action, 'queryDoAfterElementsActions', callers_frame+1)
-    def query_process_elements( action, callers_frame=4):
-      return resolve_and_call_function(action, 'queryProcessElements', callers_frame+1)
-    def do_before_elements_actions( action, callers_frame=4):
-      resolve_and_call_function(action, 'beforeElementsActions', callers_frame+1)
-    def do_after_elements_actions(action, callers_frame=4):
-      resolve_and_call_function(action, 'afterElementsActions', callers_frame+1)
+    def query_do_before_elements_actions(action):
+      return resolve_and_call_function(action, 'queryDoBeforeElementsActions')
+    def query_do_after_elements_actions(action):
+      return resolve_and_call_function(action, 'queryDoAfterElementsActions')
+    def query_process_elements( action):
+      return resolve_and_call_function(action, 'queryProcessElements')
+    def do_before_elements_actions( action):
+      resolve_and_call_function(action, 'beforeElementsActions')
+    def do_after_elements_actions(action):
+      resolve_and_call_function(action, 'afterElementsActions')
 
     self.debug("Component attributes: '%s'" % self.__attributes)
     if self in self.__attributes['__seen_elements__']:
@@ -221,20 +220,19 @@ class Component(ComponentBase):
                         )
     self.__attributes['__seen_elements__'].append(self)
     self.debug("apply('%s): Querying do before actions" % action)
-    callers_frame = callers_frame + 1
-    if query_do_before_elements_actions(action, callers_frame):
+    if query_do_before_elements_actions(action):
       self.debug("Passed check, doing before actions")
-      do_before_elements_actions(action, callers_frame)
+      do_before_elements_actions(action)
     self.debug("apply('%s): Querying process elements" % action)
-    if query_process_elements(action, callers_frame):
+    if query_process_elements(action):
       self.debug("Passed check, processing elements")
       for element in self.__elements:
         self.debug("Processing element:'%s'"%element)
-        element._applyInner(action, callers_frame)
+        element._applyInner(action)
     self.debug("apply('%s): Querying do after actions" % action)
-    if query_do_after_elements_actions(action, callers_frame):
+    if query_do_after_elements_actions(action):
       self.debug("Passed check, doing after actions")
-      do_after_elements_actions(action, callers_frame)
+      do_after_elements_actions(action)
     self.__attributes['__seen_elements__'].remove(self)
 
   def apply(self, action):
@@ -282,7 +280,7 @@ class Component(ComponentBase):
     '''
     self.__attributes['__scope__'] = inspect.stack()[1]
     self.__attributes['__seen_elements__'] = []
-    self._applyInner(action, callers_frame=2)
+    self._applyInner(action)
   def digest(self):
     '''
     Intended to be overridden.

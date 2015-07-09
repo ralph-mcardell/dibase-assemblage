@@ -33,14 +33,14 @@ class Assemblage(AssemblageBase):
     '''
     return hasattr(object, '__iter__')
 
-  def __apply(self, object, action, callers_frame=6):
+  def __apply(self, object, action):
     '''
     Internal helper for apply method. Checks to see if object has a callable
     apply attribute. It is does then calls object.apply passing it action.
     Otherwise a warning is logged to the Assemblage logger.
     '''
     if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
-      object._applyInner(action, callers_frame+1)
+      object._applyInner(action)
     else:
       self.logger().warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
 
@@ -78,13 +78,13 @@ class Assemblage(AssemblageBase):
     '''
     return self.__attributes['__store__']
 
-  def _applyInner(self, action, callers_frame=7):
+  def _applyInner(self, action):
     if self.__elements:
       if Assemblage.isiterable(self.__elements):
         for e in self.__elements:
-          self.__apply(e, action, callers_frame+1)
+          self.__apply(e, action, )
       else:
-          self.__apply(self.__elements, action, callers_frame+1)
+          self.__apply(self.__elements, action, )
     else:
       self.logger().warning("Assemblage is empty - no component elements to apply action to.")
   
@@ -111,5 +111,5 @@ class Assemblage(AssemblageBase):
     '''
     self.__attributes['__scope__'] = inspect.stack()[1]
     self.__attributes['__seen_elements__'] = []
-    self._applyInner(action, callers_frame=2)
+    self._applyInner(action)
     self.digestCache().writeBack()
