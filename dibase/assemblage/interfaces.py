@@ -25,7 +25,7 @@ class ElementBase(metaclass=ABCMeta):
     '''
     pass
   @abstractmethod
-  def _applyInner(self, action, seen_elements, callers_frame):
+  def _applyInner(self, action, callers_frame):
     '''
     Inner method used to apply function - not intended to be called by
     application code which should call apply. The _applyInner method is

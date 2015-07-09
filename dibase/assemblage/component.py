@@ -197,7 +197,7 @@ class Component(ComponentBase):
           self.debug("!! class '%s' not found !!" % action)
         return False
  
-  def _applyInner(self, action, seen_components, callers_frame=5):
+  def _applyInner(self, action, callers_frame=5):
     def resolve_and_call_function(action, action_method_name, callers_frame=3):
       func = self.__resolver(action, action_method_name, callers_frame+1)
       return func and func()
@@ -230,7 +230,7 @@ class Component(ComponentBase):
       self.debug("Passed check, processing elements")
       for element in self.__elements:
         self.debug("Processing element:'%s'"%element)
-        element._applyInner(action, seen_components, callers_frame)
+        element._applyInner(action, callers_frame)
     self.debug("apply('%s): Querying do after actions" % action)
     if query_do_after_elements_actions(action, callers_frame):
       self.debug("Passed check, doing after actions")
@@ -282,7 +282,7 @@ class Component(ComponentBase):
     '''
     self.__attributes['__scope__'] = inspect.stack()[1]
     self.__attributes['__seen_elements__'] = []
-    self._applyInner(action, [], callers_frame=2)
+    self._applyInner(action, callers_frame=2)
   def digest(self):
     '''
     Intended to be overridden.
