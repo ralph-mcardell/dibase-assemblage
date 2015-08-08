@@ -203,7 +203,7 @@ class Blueprint(AssemblagePlanBase):
           (specification.kind(name=specification.name,attributes=self.__attributes 
           ,elements=subelements,logger=specification.logger,**specification.args))
       else:
-        elements[specification.name] = specification.kind
+        elements[specification.name] = specification.kind # TODO : nestable object -- need to sort out attributes
       seen_elements.remove(specification.name)
     elements = {}
     for es in self.__element_specs_by_name.values():

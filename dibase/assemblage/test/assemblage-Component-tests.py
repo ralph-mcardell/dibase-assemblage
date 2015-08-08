@@ -93,7 +93,7 @@ class TestAssemblageComponent(unittest.TestCase):
   def test_basic_component_compares_equal_to_name_can_write_to_logger_and_has_no_elements(self):
     c = Component("test", testAttributes)
     self.assertEqual(c, "test")
-    self.assertNotEqual(repr(c).find('elements=[])'),-1)
+    self.assertNotEqual(repr(c).find('[])}'),-1)
   def test_basic_component_string_representation_is_name(self):
     c = Component("test", testAttributes)
     self.assertEqual(str(c), "test", testAttributes)
@@ -486,7 +486,7 @@ class TestAssemblageComponent(unittest.TestCase):
       def hasChanged(self):
         return True
     self.assertTrue(ChangedComponent('test', testAttributes).isOutOfDate())
-  def test_isOutOfDate_on_multiple_Components_returns_True_if_any_hasChanged_on_leaf_returns_True(self):
+  def test_isOutOfDate_on_multiple_Components_returns_True_after_apply_action_applied_to_one_or_more_elements_True(self):
     class NonLeafComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
         super().__init__(name,assm,elements,logger)
@@ -499,17 +499,18 @@ class TestAssemblageComponent(unittest.TestCase):
       def hasChanged(self):
         self.changed = not self.changed
         return self.changed
-    self.assertTrue( Component( 'test'
-                              , testAttributes
-                              , elements=[ NonLeafComponent('NonLeaf-1', testAttributes
-                                                           , elements=[LeafComponent('Leaf-11', testAttributes)]
-                                                           )
-                                         , NonLeafComponent('NonLeaf-2', testAttributes
-                                                           , elements=[LeafComponent('Leaf-21', testAttributes)]
-                                                           )
-                                         ]
-                              ).isOutOfDate()
-                   )
+    c = Component ( 'test'
+                  , testAttributes
+                  , elements=[ NonLeafComponent('NonLeaf-1', testAttributes
+                                               , elements=[LeafComponent('Leaf-11', testAttributes)]
+                                               )
+                             , NonLeafComponent('NonLeaf-2', testAttributes
+                                               , elements=[LeafComponent('Leaf-21', testAttributes)]
+                                               )
+                             ]
+                  )
+    c.apply('someModuleScopeAction')
+    self.assertTrue(c.isOutOfDate())
   def test_isOutOfDate_on_multiple_Components_returns_False_if_no_hasChanged_on_leaf_returns_True(self):
     class NonLeafComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
@@ -532,6 +533,7 @@ class TestAssemblageComponent(unittest.TestCase):
                                          ]
                               ).isOutOfDate()
                     )
+  '''
   def test_elementAttribute_returns_atribute_of_element(self):
     class ComponentWithAttributes(Component):
       def __init__(self,name,assm,elements=[],logger=None):
@@ -587,6 +589,7 @@ class TestAssemblageComponent(unittest.TestCase):
                   , elements=[Component('se-1', testAttributes)]
                   )
     self.assertIsNone(c.elementAttribute(0,'nosuchattribute', None))
+  '''
   def test_module_level_empty_action_class_acts_like_all_queries_return_false(self):
     class RecordElementActionsComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
@@ -606,6 +609,98 @@ class TestAssemblageComponent(unittest.TestCase):
     c.apply('NoActionsAction')
     self.assertFalse(c.before)
     self.assertFalse(c.after)
-
+  def test_newly_constructed_Component_has_reset_action_processing_states(self):
+    c =  Component( 'test'
+                  , testAttributes
+                  )
+    self.assertFalse(c.queryBeforeElementsActionsDone())
+    self.assertFalse(c.queryAfterElementsActionsDone())
+  def test_apply_action_with_only_before_action_processing_queryBeforeElementsActionsDone_returns_True(self):
+    c =  Component( 'test'
+                  , testAttributes
+                  )
+    class doBeforeAction:
+      @classmethod
+      def queryDoBeforeElementsActions(cls,element):
+        return True
+      @classmethod
+      def queryDoAfterElementsActions(cls,element):
+        return False
+      @classmethod
+      def queryProcessElements(cls,element):
+        return False
+      @classmethod
+      def beforeElementsActions(cls,element):
+        pass
+      @classmethod
+      def afterElementsActions(cls,element):
+        pass
+    c.apply('doBeforeAction')
+    self.assertTrue(c.queryBeforeElementsActionsDone())
+    self.assertFalse(c.queryAfterElementsActionsDone())
+  def test_apply_action_with_only_after_action_processing_queryAfterElementsActionsDone_returns_True(self):
+    c =  Component( 'test'
+                  , testAttributes
+                  )
+    class doAfterAction:
+      @classmethod
+      def queryDoBeforeElementsActions(cls,element):
+        return False
+      @classmethod
+      def queryDoAfterElementsActions(cls,element):
+        return True
+      @classmethod
+      def queryProcessElements(cls,element):
+        return False
+      @classmethod
+      def beforeElementsActions(cls,element):
+        pass
+      @classmethod
+      def afterElementsActions(cls,element):
+        pass
+    c.apply('doAfterAction')
+    self.assertFalse(c.queryBeforeElementsActionsDone())
+    self.assertTrue(c.queryAfterElementsActionsDone())
+  def test_apply_action_correctly_sets_both_processing_states_on_repeated_apply_calls(self):
+    c =  Component( 'test'
+                  , testAttributes
+                  )
+    class settableDoAction:
+      doBefore = True
+      doAfter = True
+      @classmethod
+      def queryDoBeforeElementsActions(cls,element):
+        return cls.doBefore
+      @classmethod
+      def queryDoAfterElementsActions(cls,element):
+        return cls.doAfter
+      @classmethod
+      def queryProcessElements(cls,element):
+        return False
+      @classmethod
+      def beforeElementsActions(cls,element):
+        pass
+      @classmethod
+      def afterElementsActions(cls,element):
+        pass
+    c.apply('settableDoAction')
+    self.assertTrue(c.queryBeforeElementsActionsDone())
+    self.assertTrue(c.queryAfterElementsActionsDone())
+    settableDoAction.doBefore = False
+    settableDoAction.doAfter = False
+    c.apply('settableDoAction')
+    self.assertFalse(c.queryBeforeElementsActionsDone())
+    self.assertFalse(c.queryAfterElementsActionsDone())
+    settableDoAction.doBefore = True
+    settableDoAction.doAfter = False
+    c.apply('settableDoAction')
+    self.assertTrue(c.queryBeforeElementsActionsDone())
+    self.assertFalse(c.queryAfterElementsActionsDone())
+    settableDoAction.doBefore = False
+    settableDoAction.doAfter = True
+    c.apply('settableDoAction')
+    self.assertFalse(c.queryBeforeElementsActionsDone())
+    self.assertTrue(c.queryAfterElementsActionsDone())
+    
 if __name__ == '__main__':
   unittest.main()

@@ -12,10 +12,9 @@ License: dual: GPL or BSD.
 
 from abc import ABCMeta, abstractmethod
 
-class ElementBase(metaclass=ABCMeta):
+class ApplicatorBase(metaclass=ABCMeta):
   '''
-  Defines methods required by users of objects representing assemblage elements
-  (the assemblage.Assemblage and assemblage.Component classes for example)
+  Defines methods for objects supporting the application of actions.
   '''
   @abstractmethod
   def apply(self, action):
@@ -25,18 +24,35 @@ class ElementBase(metaclass=ABCMeta):
     '''
     pass
   @abstractmethod
-  def _applyInner(self, action):
+  def _applyInner(self, action, scope):
     '''
     Inner method used to apply function - not intended to be called by
     application code which should call apply. The _applyInner method is
     intended to be called on elements recursively initially from an application
     apply method call to perform the task of applying actions in the required
     manner. In addition to the outer application apply method's action string
-    parameter _applyInner is also passed a collection of seen elements for
-    circular reference detection and a value that indicates how many call
-    frames away from the current one (possibly plus a fixed amount) the 
-    original apply calling code is and can be used to locate the application
-    call context to use to resolve names of action classes.
+    parameter _applyInner is also passed a call 'scope' in the form of a stack
+    frame that can be used to resolve action methods.
+    '''
+    pass
+
+class ElementBase(ApplicatorBase):
+  '''
+  Defines methods required by users of objects representing assemblage elements
+  (the assemblage.Assemblage and assemblage.Component classes for example)
+  '''
+  @abstractmethod
+  def queryBeforeElementsActionsDone(self):
+    '''
+    Return true if component processed actions before processing (sub-)
+    element components. Returns false otherwise.
+    '''
+    pass
+  @abstractmethod
+  def queryAfterElementsActionsDone(self):
+    '''
+    Return true if component processed actions after processing (sub-)
+    element components. Returns false otherwise.
     '''
     pass
 
@@ -144,17 +160,54 @@ class ComponentBase(ElementBase):
     assembly and the digest store it uses - even across executions.
     '''
     pass
+#  @abstractmethod
+#  def elementAttribute(self, id, name, default=AttributeError):
+#    '''
+#    Should return the value of the named attribute of the component's element
+#    object given by id - the type of id being dependent on the implementation
+#    of component (sub-)element collection. If the id is a valid identifier 
+#    for a component element and the string is the name of one of the object’s
+#    attributes, the result should be the value of that attribute. If the
+#    element or  named attribute does not exist, then default should be
+#    returned if provided, otherwise a LookupError (IndexError or KeyError
+#    as appropriate) or AttributeError should be raised.
+#    '''
+#    pass
+
+class CompoundBase(ApplicatorBase):
+  '''
+  Compounds are collections of component elements assumed to adhere to
+  the ComponentBase base and implements ApplicatorBase to allow providing action
+  application to contained components. Extended interface methods provide for
+  querying action application state allowing using code to discover if any or
+  all actions occurred before or after contained element processing.
+  '''
   @abstractmethod
-  def elementAttribute(self, id, name, default=AttributeError):
+  def queryAnyBeforeElementsActionsDone(self):
     '''
-    Should return the value of the named attribute of the component's element
-    object given by id - the type of id being dependent on the implementation
-    of component (sub-)element collection. If the id is a valid identifier 
-    for a component element and the string is the name of one of the object’s
-    attributes, the result should be the value of that attribute. If the
-    element or  named attribute does not exist, then default should be
-    returned if provided, otherwise a LookupError (IndexError or KeyError
-    as appropriate) or AttributeError should be raised.
+    Return true if any elements processed actions before processing their (sub-)
+    element components. Returns false otherwise.
+    '''
+    pass
+  @abstractmethod
+  def queryAllBeforeElementsActionsDone(self):
+    '''
+    Return true if all elements processed actions before processing their (sub-)
+    element components. Returns false otherwise.
+    '''
+    pass
+  @abstractmethod
+  def queryAnyAfterElementsActionsDone(self):
+    '''
+    Return true if any elements processed actions after processing their (sub-)
+    element components. Returns false otherwise.
+    '''
+    pass
+  @abstractmethod
+  def queryAllAfterElementsActionsDone(self):
+    '''
+    Return true if all elements processed actions after processing their (sub-)
+    element components. Returns false otherwise.
     '''
     pass
 

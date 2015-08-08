@@ -60,6 +60,36 @@ class BuildAction:
 
 build = BuildAction # Demonstrate ability to create aliases for (action) classes
 
+class ShelfComponent(FileComponent):
+  '''
+  Sub-class of file component for shelf data stores whose name may map to
+  more than one file with additional extensions.
+  '''
+  def __init__(self, name, attributes, elements=[], logger=None):
+    '''
+    Passes all parameters on to the FileComponent base.
+    '''
+    super().__init__(name,attributes,elements,logger)
+    self._shelfPath = None
+  def normalisedShelfPath(self):
+    '''
+    Returns the path that is the name of the element (str(self)) with the
+    user's path expanded (~) if present and normalised to be an absolute
+    shelf pathname.
+    '''
+    if not self._shelfPath:
+      self._shelfPath = os.path.abspath(os.path.expanduser(str(self)))
+    return self._shelfPath
+  def normalisedPath(self):
+    '''
+    Returns the path that is the name of the element (str(self)) + additional
+    '.dat' extension with the user's path expanded (~) if present and
+    normalised to be an absolute pathname.
+    '''
+    if not self._path:
+      self._path = os.path.abspath(os.path.expanduser('.'.join([str(self),'dat'])))
+    return self._path
+
 class CSVDataMunger(FileComponent):
   def __init__(self, name, attributes, elements=[], logger=None, transformer=None):
     '''
@@ -149,7 +179,7 @@ class CSVDataMunger(FileComponent):
                   mbr_writer.writerow([price])
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
 
-class CSVGroupDataCompiler(FileComponent):
+class CSVGroupDataCompiler(ShelfComponent):
   def __init__(self, name, attributes, elements=[], logger=None):
     self.inputFilePath = None
     for e in elements:
@@ -218,7 +248,7 @@ class GroupDataArchiver(Component):
     self.inputFilePaths = []
     for e in elements:
       if type(e) is CSVGroupDataCompiler:
-        self.inputFilePaths.append(e.normalisedPath())
+        self.inputFilePaths.append(e.normalisedShelfPath())
     if not self.inputFilePaths:
       raise RuntimeError("GroupDataArchiver: No input CSVGroupDataCompiler elements provided" )
     super().__init__(name,attributes,elements,logger)
@@ -238,7 +268,7 @@ class GroupDataArchiver(Component):
           for dataset_name, dataset_map in input_store.items():
             output_store[dataset_name] = dataset_map
 
-class BarChartDescriptionCompiler(FileComponent):
+class BarChartDescriptionCompiler(ShelfComponent):
   '''
   Reads a JSON description of on e or more bar charts and constructs a
   partial HTML5/SVG document that only requires 'linking' with the appropriate
@@ -357,9 +387,9 @@ class BarChartDocumentLinker(Component):
     self.groupDataObjectFilePaths = []
     for e in elements:
       if type(e) is BarChartDescriptionCompiler:
-        self.graphObjectFilePath.append(e.normalisedPath())
+        self.graphObjectFilePath.append(e.normalisedShelfPath())
       elif type(e) is GroupDataArchiveFile:
-        self.groupDataObjectFilePaths.append(e.normalisedPath())
+        self.groupDataObjectFilePaths.append(e.normalisedShelfPath())
     if not self.graphObjectFilePath:
       raise RuntimeError("BarChartDocumentLinker: No input graph description object elements provided" )
     elif len(self.graphObjectFilePath)!=1:
@@ -649,7 +679,7 @@ def MungeSalesJan2009(records):
           output['Country'][country]['__DATA__'].append(price) 
   return output
 
-class GroupDataArchiveFile(FileComponent):
+class GroupDataArchiveFile(ShelfComponent):
   def __init__(self, name, attributes, elements=[], logger=None):
     super().__init__(name,attributes,elements,logger)
 

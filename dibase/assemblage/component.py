@@ -12,6 +12,8 @@ License: dual: GPL or BSD.
 '''
 
 from .interfaces import ComponentBase
+from .compound import Compound
+
 import logging
 import inspect
 import sys
@@ -36,7 +38,7 @@ class Component(ComponentBase):
   def __init__(self, name, attributes, elements=[], logger=None):
     self.__name = name
     self.__attributes = attributes
-    self.__elements = elements
+    self.__elements = Compound(attributes,elements)
     if type(logger) is logging.Logger:
       self.__logger = logger  
     elif type(logger) is str:
@@ -46,13 +48,14 @@ class Component(ComponentBase):
     else:
       self.__logger = logging.getLogger()
     self.debug("Created %s"%repr(self))
+    self.reset()
   def __repr__(self):
     '''
     Note: representation ignores __logger attribute.
     Return a representation that if evaluated creates object that logs to the 
     root logger.
     '''
-    return "%(c)s(name=%(n)s,elements=%(e)s)" % {'c':self.__class__.__name__,'n':self.__name,'e':self.__elements}
+    return "%(c)s{name=%(n)s,elements=%(e)s}" % {'c':self.__class__.__name__,'n':self.__name,'e':self.__elements}
   def __str__(self):
     return self.__name
   def __hash__(self):
@@ -70,19 +73,19 @@ class Component(ComponentBase):
   def __ge__(self, other):
     return str(self) >= str(other)
 
-  def elementAttribute(self, id, name, default=AttributeError):
-    if (type(id) is not int) or id<0 or id>=len(self.__elements):
-      if default is AttributeError:
-        raise IndexError( self.__log_message( "id %(i)s is not an integer"
-                                             " or out of range [0,%(e)d]"
-                                              % {'i':str(id)
-                                                , 'e':len(self.__elements)-1}
-                                            )
-                        )
-      else:
-        return default
-    return getattr(self.__elements[id],name) if default is AttributeError\
-            else getattr(self.__elements[id],name,default)
+#  def elementAttribute(self, id, name, default=AttributeError):
+#    if (type(id) is not int) or id<0 or id>=len(self.__elements):
+#      if default is AttributeError:
+#        raise IndexError( self.__log_message( "id %(i)s is not an integer"
+#                                             " or out of range [0,%(e)d]"
+#                                              % {'i':str(id)
+#                                                , 'e':len(self.__elements)-1}
+#                                            )
+#                        )
+#      else:
+#        return default
+#    return getattr(self.__elements[id],name) if default is AttributeError\
+#            else getattr(self.__elements[id],name,default)
 
   def __log_message(self, message, frame=1):
     callerframe = inspect.getouterframes(inspect.currentframe(),3)
@@ -99,7 +102,7 @@ class Component(ComponentBase):
 #  def assemblage(self):
 #    return self.__assemblage
 
-  def __get_class_in_callers_scope(self, name):
+  def __get_class_in_callers_scope(self, name, scope):
     def get_module_from_frame(frame):
       module_name = frame.f_globals['__name__']
       if module_name in sys.modules:
@@ -115,9 +118,9 @@ class Component(ComponentBase):
       return mapstr
 
 #    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
-    if '__scope__' not in self.__attributes:
+    if not scope:
       return None
-    frame = self.__attributes['__scope__'][0]
+    frame = scope[0]
     flocals = frame.f_locals
 #    self.debug("FRAME  LOCALS:%s" % strmap(flocals))
 #    self.debug("FRAME GLOBALS:%s" % strmap(frame.f_globals))
@@ -168,15 +171,15 @@ class Component(ComponentBase):
               return the_class
     return None
 
-  def __get_class_qualname_in_callers_scope(self, name):
+  def __get_class_qualname_in_callers_scope(self, name, scope):
     the_class = get_class_in_callers_scope(name)
     if the_class:
 #      self.debug("   Returning '%s'" % '.'.join([the_class.__module__,the_class.__qualname__]))
       return '.'.join([the_class.__module__,the_class.__qualname__])
     return None
   
-  def __resolver(self,action, action_method_name):
-      self.debug("apply('%(a)s): Resolving function '%(f)s'"
+  def __resolver(self,action, action_method_name, scope):
+      self.debug("apply('%(a)s'): Resolving function '%(f)s'"
                          % {'a':action,'f':action_method_name})
       self_method_name = ''.join([action,'_', action_method_name])
       method = getattr(self, self_method_name, False)
@@ -184,7 +187,7 @@ class Component(ComponentBase):
         self.debug("Found method 'self.%s'"%self_method_name)
         return method
       else:
-        action_class = self.__get_class_in_callers_scope(action)
+        action_class = self.__get_class_in_callers_scope(action, scope)
         if action_class:
           method = getattr(action_class, action_method_name, False)
           if method:
@@ -196,22 +199,23 @@ class Component(ComponentBase):
           self.debug("!! class '%s' not found !!" % action)
         return False
  
-  def _applyInner(self, action):
-    def resolve_and_call_function(action, action_method_name, ):
-      func = self.__resolver(action, action_method_name)
+  def _applyInner(self, action, scope):
+    def resolve_and_call_function(action, action_method_name, scope):
+      func = self.__resolver(action, action_method_name, scope)
       return func and func()
-    def query_do_before_elements_actions(action):
-      return resolve_and_call_function(action, 'queryDoBeforeElementsActions')
-    def query_do_after_elements_actions(action):
-      return resolve_and_call_function(action, 'queryDoAfterElementsActions')
-    def query_process_elements( action):
-      return resolve_and_call_function(action, 'queryProcessElements')
-    def do_before_elements_actions( action):
-      resolve_and_call_function(action, 'beforeElementsActions')
-    def do_after_elements_actions(action):
-      resolve_and_call_function(action, 'afterElementsActions')
+    def query_do_before_elements_actions(action, scope):
+      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', scope)
+    def query_do_after_elements_actions(action, scope):
+      return resolve_and_call_function(action, 'queryDoAfterElementsActions', scope)
+    def query_process_elements( action, scope):
+      return resolve_and_call_function(action, 'queryProcessElements', scope)
+    def do_before_elements_actions( action, scope):
+      resolve_and_call_function(action, 'beforeElementsActions', scope)
+    def do_after_elements_actions(action, scope):
+      resolve_and_call_function(action, 'afterElementsActions', scope)
 
     self.debug("Component attributes: '%s'" % self.__attributes)
+    self.reset()
     if self in self.__attributes['__seen_elements__']:
       raise RuntimeError( self.__log_message( "Circular reference: already tried to "
                                               "apply action '%(a)s' to element '%(e)s'"
@@ -219,21 +223,37 @@ class Component(ComponentBase):
                                             )
                         )
     self.__attributes['__seen_elements__'].append(self)
-    self.debug("apply('%s): Querying do before actions" % action)
-    if query_do_before_elements_actions(action):
+    self.debug("apply('%s'): Querying do before actions" % action)
+    if query_do_before_elements_actions(action, scope):
       self.debug("Passed check, doing before actions")
-      do_before_elements_actions(action)
-    self.debug("apply('%s): Querying process elements" % action)
-    if query_process_elements(action):
+      do_before_elements_actions(action, scope)
+      self.__beforeDone = True
+    self.debug("apply('%s'): Querying process elements" % action)
+    if query_process_elements(action, scope):
       self.debug("Passed check, processing elements")
-      for element in self.__elements:
-        self.debug("Processing element:'%s'"%element)
-        element._applyInner(action)
-    self.debug("apply('%s): Querying do after actions" % action)
-    if query_do_after_elements_actions(action):
+      self.__elements._applyInner(action, scope)
+    self.debug("apply('%s'): Querying do after actions" % action)
+    if query_do_after_elements_actions(action, scope):
       self.debug("Passed check, doing after actions")
-      do_after_elements_actions(action)
+      do_after_elements_actions(action, scope)
+      self.__afterDone = True
     self.__attributes['__seen_elements__'].remove(self)
+
+  def reset(self):
+    self.__beforeDone = False
+    self.__afterDone = False
+  def queryBeforeElementsActionsDone(self):
+    '''
+    Return true if component processed actions before processing (sub-)
+    element components. Returns false otherwise.
+    '''
+    return self.__beforeDone
+  def queryAfterElementsActionsDone(self):
+    '''
+    Return true if component processed actions after processing (sub-)
+    element components. Returns false otherwise.
+    '''
+    return self.__afterDone
 
   def apply(self, action):
     '''
@@ -278,9 +298,8 @@ class Component(ComponentBase):
     to be either class or static methods taking (other than the cls parameter
     for class methods) only the Component as a parameter.
     '''
-    self.__attributes['__scope__'] = inspect.stack()[1]
     self.__attributes['__seen_elements__'] = []
-    self._applyInner(action)
+    self._applyInner(action, inspect.stack()[1])
   def digest(self):
     '''
     Intended to be overridden.
@@ -317,9 +336,11 @@ class Component(ComponentBase):
     '''
     self.debug("Checking if Component is out of date")
     result = False
-    if self.__elements:
-      for e in self.__elements: # intentionally touch all elements
-        result = e.isOutOfDate() or result
+    # out of date if any (sub-)element was processed
+    # temporary fix during refactoring transitioning.
+    if  self.__elements.queryAnyBeforeElementsActionsDone()\
+     or self.__elements.queryAnyAfterElementsActionsDone():
+      result = True
     else:
       result = self.hasChanged()
     return result

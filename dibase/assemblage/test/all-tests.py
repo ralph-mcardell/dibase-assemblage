@@ -10,6 +10,7 @@ if __name__ == '__main__':
   test_info = [ ('assemblage-Assemblage-tests', 'TestAssemblageAssemblage')
               , ('assemblage-Blueprint-tests', 'TestAssemblageBlueprint')
               , ('assemblage-Component-tests', 'TestAssemblageComponent')
+              , ('assemblage-Compound-tests', 'TestAssemblageCompound')
               , ('assemblage-DigestCache-tests', 'TestAssemblageDigestCache')
               , ('assemblage-ShelfDigestStore-tests', 'TestAssemblageDigestStore')
               , ('assemblage-FileComponent-tests', 'TestAssemblageFileComponent')

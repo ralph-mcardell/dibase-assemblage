@@ -28,16 +28,16 @@ class FileComponent(Component):
     Passes all parameters on to the Component base.
     '''
     super().__init__(name,attributes,elements,logger)
-    self.path = None # filled in as late as possible
+    self._path = None # filled in as late as possible
   def normalisedPath(self):
     '''
     Returns the path that is the name of the element (str(self)) with the
     user's path expanded (~) if present and normalised to be an absolute
     pathname.
     '''
-    if not self.path:
-      self.path = os.path.abspath(os.path.expanduser(str(self)))
-    return self.path
+    if not self._path:
+      self._path = os.path.abspath(os.path.expanduser(str(self)))
+    return self._path
   def doesNotExist(self):
     does_not_exist = not os.path.exists(self.normalisedPath())
     self.debug("Target file '%(f)s' does not exist? %(b)s" % {'f':self.normalisedPath(), 'b':does_not_exist})

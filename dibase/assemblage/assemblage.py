@@ -33,14 +33,14 @@ class Assemblage(AssemblageBase):
     '''
     return hasattr(object, '__iter__')
 
-  def __apply(self, object, action):
+  def __apply(self, object, action, scope):
     '''
     Internal helper for apply method. Checks to see if object has a callable
     apply attribute. It is does then calls object.apply passing it action.
     Otherwise a warning is logged to the Assemblage logger.
     '''
     if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
-      object._applyInner(action)
+      object._applyInner(action, scope)
     else:
       self.logger().warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
 
@@ -52,7 +52,7 @@ class Assemblage(AssemblageBase):
     The plan parameter is assumed to provide:
       - a logger instance method callable as plan.logger() 
         and returning a Python logging.logger object (or equivalent).
-      - a digestChache instance method callable as plan.digestCache() 
+      - a digestCache instance method callable as plan.digestCache() 
         and returning a dibase.assemblage.digestCache object (or equivalent).
       - a topLevelElements instance method callable as
         plan.topLevelElements() and returning either a single element object
@@ -63,6 +63,20 @@ class Assemblage(AssemblageBase):
     '''
     self.__attributes = plan.attributes()
     self.__elements = plan.topLevelElements()
+
+  def queryBeforeElementsActionsDone(self):
+    '''
+    Return False as Assemblage objects never perform action actions before
+    passing the action application request on to their (top level) elements.
+    '''
+    return False
+  def queryAfterElementsActionsDone(self):
+    '''
+    Return False as Assemblage objects never perform action actions after
+    passing the action application request on to their (top level) elements.
+    passing the action application request on to their (top level) elements.
+    '''
+    return False
 
   def logger(self):
     '''
@@ -78,13 +92,16 @@ class Assemblage(AssemblageBase):
     '''
     return self.__attributes['__store__']
 
-  def _applyInner(self, action):
+  def _applyInner(self, action, scope):
     if self.__elements:
+      self.__attributes['__seen_elements__'] = []
+
       if Assemblage.isiterable(self.__elements):
         for e in self.__elements:
-          self.__apply(e, action, )
+          self.__apply(e, action, scope)
       else:
-          self.__apply(self.__elements, action, )
+        self.__apply(self.__elements, action, scope)
+        self.digestCache().writeBack()
     else:
       self.logger().warning("Assemblage is empty - no component elements to apply action to.")
   
@@ -109,7 +126,4 @@ class Assemblage(AssemblageBase):
     After an action has been applied any changed resource digests are written
     back to the Assemblage's digest cache.
     '''
-    self.__attributes['__scope__'] = inspect.stack()[1]
-    self.__attributes['__seen_elements__'] = []
-    self._applyInner(action)
-    self.digestCache().writeBack()
+    self._applyInner(action, inspect.stack()[1])

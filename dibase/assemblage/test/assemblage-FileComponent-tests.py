@@ -47,7 +47,7 @@ class SpoofDigestCache(DigestCacheBase):
 testAttributes = {'__logger__' : None, '__store__' : SpoofDigestCache()}
 
 #class NullAssemblage(AssemblageBase):
-#  def _applyInner(self, action, seen_components, callers_frame=7):
+#  def _applyInner(self, action, scope):
 #    pass
 #  def apply(self, action):
 #    pass
