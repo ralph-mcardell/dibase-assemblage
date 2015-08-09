@@ -34,17 +34,6 @@ class Assemblage(AssemblageBase):
     '''
     return hasattr(object, '__iter__')
 
-  def __apply(self, object, action, scope):
-    '''
-    Internal helper for apply method. Checks to see if object has a callable
-    apply attribute. It is does then calls object.apply passing it action.
-    Otherwise a warning is logged to the Assemblage logger.
-    '''
-    if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
-      object._applyInner(action, scope)
-    else:
-      self.logger().warning("Assemblage element has no '_applyInner' method (object=%(e)s)." % {'e':object})
-
   def __init__(self, plan):
     '''
     Extracts the Assemblage instance's logger and elements from the plan
@@ -91,7 +80,6 @@ class Assemblage(AssemblageBase):
 
   def digestCache(self):
     '''
-    ##stub -- TBD##
     Returns a digest cache object.
     '''
     return self.__attributes['__store__']
