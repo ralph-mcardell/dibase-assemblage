@@ -11,6 +11,7 @@ License: dual: GPL or BSD.
 '''
 
 from .interfaces import AssemblageBase
+from .compound import Compound
 import inspect
 
 class Assemblage(AssemblageBase):
@@ -42,7 +43,7 @@ class Assemblage(AssemblageBase):
     if hasattr(object, '_applyInner') and callable(getattr(object, '_applyInner')):
       object._applyInner(action, scope)
     else:
-      self.logger().warning("Assemblage element has no '_apply_inner' method (object=%(e)s)." % {'e':object})
+      self.logger().warning("Assemblage element has no '_applyInner' method (object=%(e)s)." % {'e':object})
 
   def __init__(self, plan):
     '''
@@ -62,7 +63,10 @@ class Assemblage(AssemblageBase):
     The plan parameter's requirements are met by assemblage.Blueprint objects.
     '''
     self.__attributes = plan.attributes()
-    self.__elements = plan.topLevelElements()
+    elements = plan.topLevelElements()
+    if not Assemblage.isiterable(elements):
+      elements = [elements]
+    self.__elements = Compound(self.__attributes,elements)
 
   def queryBeforeElementsActionsDone(self):
     '''
@@ -93,17 +97,16 @@ class Assemblage(AssemblageBase):
     return self.__attributes['__store__']
 
   def _applyInner(self, action, scope):
-    if self.__elements:
-      self.__attributes['__seen_elements__'] = []
-
-      if Assemblage.isiterable(self.__elements):
-        for e in self.__elements:
-          self.__apply(e, action, scope)
-      else:
-        self.__apply(self.__elements, action, scope)
-        self.digestCache().writeBack()
-    else:
-      self.logger().warning("Assemblage is empty - no component elements to apply action to.")
+    self.__attributes['__seen_elements__'] = []
+    self.__elements._applyInner(action, scope)
+    self.digestCache().writeBack()
+    if self.__elements.queryAllAfterElementsActionsDone() and not self.__elements.queryAnyAfterElementsActionsDone():
+      # the only time all action after actions done but not any were done
+      # is if there are no elements with _applyInner methods to process
+      self.logger().warning("Assemblage has no component elements to which"
+                            " action '%(a)s' could be applied to."
+                            % {'a':action}
+                           )
   
   def apply(self, action):
     '''

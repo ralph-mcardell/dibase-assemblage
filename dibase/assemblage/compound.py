@@ -34,10 +34,12 @@ class Compound(CompoundBase):
   def debug(self, message):
     if self.__logger and self.__logger.isEnabledFor(logging.DEBUG):
       self.__logger.debug(message)
-    
   def error(self, message):
     if self.__logger and self.__logger.isEnabledFor(logging.ERROR):
       self.__logger.error(message)
+  def warning(self, message):
+    if self.__logger and self.__logger.isEnabledFor(logging.WARNING):
+      self.__logger.warning(message)
   def reset(self):
     '''
     Resets all action application states to False.
@@ -91,15 +93,18 @@ class Compound(CompoundBase):
     self.__allAfter = True
     for element in self.__elements:
       self.debug("Processing Compound element: '%s'"%element)
-      element._applyInner(action, scope)
-      if element.queryBeforeElementsActionsDone():
-        self.__anyBefore = True
+      if hasattr(element, '_applyInner') and callable(getattr(element, '_applyInner')):
+        element._applyInner(action, scope)
+        if element.queryBeforeElementsActionsDone():
+          self.__anyBefore = True
+        else:
+          self.__allBefore = False
+        if element.queryAfterElementsActionsDone():
+          self.__anyAfter = True
+        else:
+          self.__allAfter = False
       else:
-        self.__allBefore = False
-      if element.queryAfterElementsActionsDone():
-        self.__anyAfter = True
-      else:
-        self.__allAfter = False
+        self.warning("Assemblage element has no '_applyInner' method (element=%(e)s)." % {'e':element})
   def __repr__(self):
     '''
     Returns a representation of the elements and the action done states

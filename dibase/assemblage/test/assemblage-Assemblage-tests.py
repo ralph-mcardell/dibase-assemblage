@@ -26,18 +26,30 @@ class Component:
     pass
   def apply(self, action):
     pass
+  def queryBeforeElementsActionsDone(self):
+    return False
+  def queryAfterElementsActionsDone(self):
+    return False
 
 class NoteApplyCalls:
   def __init__(self):
     self.applyCount = 0
   def _applyInner(self, action, scope):
     self.applyCount = self.applyCount + 1
+  def queryBeforeElementsActionsDone(self):
+    return False
+  def queryAfterElementsActionsDone(self):
+    return False
 
 class NoteLastAppliedAction:
   def __init__(self):
     self.lastAction = ''
   def _applyInner(self, action, scope):
     self.lastAction = action
+  def queryBeforeElementsActionsDone(self):
+    return False
+  def queryAfterElementsActionsDone(self):
+    return False
 
 class NotApplicable:
   pass
@@ -76,11 +88,11 @@ class TestAssemblageAssemblage(unittest.TestCase):
     b = Blueprint()
     with self.assertLogs(b.logger(), logging.WARNING):
       Assemblage(b).apply("someAction")
-    Assemblage(b).apply("yetAnotherAction")    
-    self.assertEqual(b.logContents().count('\n'),1)
-    print("test_apply_action_to_Assemblage_from_empty_blueprint_logs_informational_message"
-            "\n  INFORMATION: Logged message: '", b.logContents()
-          , "'", sep='')
+    Assemblage(b).apply("yetAnotherAction")
+    l = b.logContents()
+    print("test_apply_action_to_Assemblage_from_empty_blueprint_logs_warning_message"
+            "\n  INFORMATION: Logged message: %(l)s" % {'l':repr(l)})
+    self.assertEqual(l.count("\n"),1)
   def test_apply_action_to_Assemblage_from_non_empty_blueprint_logs_no_warning_message(self):
     b = Blueprint([Component()])
     Assemblage(b).apply("anAction")    
@@ -116,21 +128,25 @@ class TestAssemblageAssemblage(unittest.TestCase):
     self.assertEqual(b.topLevelElements().lastAction,'Action_a')
     a1.apply("JustDoIt")    
     self.assertEqual(b.topLevelElements().lastAction,"JustDoIt")
-  def test_apply_action_to_Assemblage_from_blueprint_with_single_top_level_component_lacking_apply_method_logs_warning(self):
+  def test_apply_action_to_Assemblage_from_blueprint_with_single_top_level_component_lacking_applyInner_method_logs_warning(self):
     b = Blueprint(NotApplicable())   
     with self.assertLogs(b.logger(), logging.WARNING):
       Assemblage(b).apply("JustDoIt")    
     Assemblage(b).apply("JustDoIt")    
-    self.assertEqual(b.logContents().count('\n'),1)
     print("test_apply_action_to_Assemblage_from_blueprint_with_single_top_level_component_lacking_apply_method_logs_warning"
             "\n  INFORMATION: Logged message:\n    '", b.logContents()
           , "'", sep='')
-  def test_apply_action_to_Assemblage_from_blueprint_with_many_top_level_components_lacking_apply_method_logs_warning(self):
+    # expected log message count is 2: 
+    # - no _applyInner method 
+    # - no elements could have action applied to them
+    self.assertEqual(b.logContents().count('\n'),2)
+  def test_apply_action_to_Assemblage_from_blueprint_with_many_top_level_components_lacking_applyInner_method_logs_warning(self):
     b = Blueprint([NotApplicable(), NotApplicable(), NotApplicable(), NotApplicable()])   
     with self.assertLogs(b.logger(), logging.WARNING):
       Assemblage(b).apply("JustDoIt")    
     Assemblage(b).apply("JustDoIt")    
-    self.assertEqual(b.logContents().count('\n'),4)
+    # Note: Extra log message as no elements could have action applied to them.
+    self.assertEqual(b.logContents().count('\n'),5)
   def test_Assemblage_can_be_nested_as_element_of_another_Assemblage_and_applied_actions_are_passed_through(self):
     binner = Blueprint([NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction(), NoteLastAppliedAction()])
     ai = Assemblage(binner)
@@ -140,7 +156,7 @@ class TestAssemblageAssemblage(unittest.TestCase):
     ao = Assemblage(bouter)
     for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,'')
-    ao.apply("anAction")    
+    ao.apply("anAction")
     for c in binner.topLevelElements():
       self.assertEqual(c.lastAction,'anAction')
     ao.apply("anotherAction")    
