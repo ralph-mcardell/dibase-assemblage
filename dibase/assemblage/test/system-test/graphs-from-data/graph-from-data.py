@@ -48,6 +48,8 @@ import csv
 import logging
 import shelve
 import json
+import shutil
+import glob
 
 class BuildAction:
   @staticmethod
@@ -698,39 +700,76 @@ class GroupDataArchiveFile(ShelfComponent):
   def isOutOfDate(self):
     return False # don't bother re-building just in case library source has changed
 
+# Directories containing non-generated files
+def downloadDir():
+  return os.path.abspath('./download')
+def graphSourceDir():
+  return os.path.abspath('./graph-source')
+
+# Directories containing generated files
+def sourceDir():
+  return os.path.abspath('./source')
+def buildDir():
+  return os.path.abspath('./build')
+def libDir():
+  return os.path.abspath('./lib')
+def docDir():
+  return os.path.abspath('./doc')
+
+# Generated file paths:
+def salesOriginalFilestem():
+  return 'SalesJan2009'
+def salesOriginalData():
+  return '%(p)s/%(f)s.csv'%{'p':downloadDir(), 'f':salesOriginalFilestem()}
+def salesSrcFile():
+  return '%(p)s/%(f)s.csv'%{'p':sourceDir(), 'f':salesOriginalFilestem()}
+def salesObjFile():
+  return '%(p)s/%(f)s.gdo'%{'p':buildDir(), 'f':salesOriginalFilestem()}
+
+def groupDataLibFilestem():
+  return 'group-data'
+def groupDataLibFile():
+  return '%(p)s/lib-%(f)s.gda'%{'p':libDir(), 'f':groupDataLibFilestem()}
+
+def salesByCountryAvgGraphFilestem():
+  return "sales-avg-by-country"
+def salesByCountryAvgGraphSrcFile():
+  return '%(p)s/%(f)s.json'%{'p':graphSourceDir(), 'f':salesByCountryAvgGraphFilestem()}
+def salesByCountryAvgGraphObjFile():
+  return '%(p)s/%(f)s.gpho'%{'p':buildDir(), 'f':salesByCountryAvgGraphFilestem()}
+def salesByCountryAvgGraphDocFile():
+  return '%(p)s/%(f)s.html'%{'p':docDir(), 'f':salesByCountryAvgGraphFilestem()}
+
+def removeDirs():
+  shutil.rmtree(sourceDir(),ignore_errors=True)
+  shutil.rmtree(buildDir(),ignore_errors=True)
+  shutil.rmtree(libDir(),ignore_errors=True)
+  shutil.rmtree(docDir(),ignore_errors=True)
+def removeCache():
+  cache_path_stem = os.path.abspath('./.__assemblage-cache__')
+  for file in glob.glob('.'.join([cache_path_stem,'*'])):
+    os.remove(file)
+
 class SystemTestGraphsFromCSVData(unittest.TestCase):
-  def test_build_from_Python_objects_element_processors(self):
-    original_data_dir = os.path.abspath('./download')
-    source_dir = os.path.abspath('./source')
-    build_dir = os.path.abspath('./build')
-    lib_dir = os.path.abspath('./lib')
-    graph_source_dir = './graph-source'
-    doc_dir = './doc'
-    sales_original_filestem = 'SalesJan2009'
-    group_data_lib_filestem = 'group-data'
-    sales_original_data = '%(p)s/%(f)s.csv'%{'p':original_data_dir, 'f':sales_original_filestem}
-    sales_source_file = '%(p)s/%(f)s.csv'%{'p':source_dir, 'f':sales_original_filestem}
-    sales_object_file = '%(p)s/%(f)s.gdo'%{'p':build_dir, 'f':sales_original_filestem}
-    group_data_lib_file = '%(p)s/lib-%(f)s.gda'%{'p':lib_dir, 'f':group_data_lib_filestem}
-    sales_by_country_avg_graph_filestem = "sales-avg-by-country"
-    sales_by_country_avg_graph_src_file = '%(p)s/%(f)s.json'%{'p':graph_source_dir, 'f':sales_by_country_avg_graph_filestem}
-    sales_by_country_avg_graph_obj_file = '%(p)s/%(f)s.gpho'%{'p':build_dir, 'f':sales_by_country_avg_graph_filestem}
-    sales_by_country_avg_graph_doc_file = '%(p)s/%(f)s.html'%{'p':doc_dir, 'f':sales_by_country_avg_graph_filestem}
+  assembly = None
+  @classmethod
+  def setUpClass(cls):
+    Blueprint().logger().info("STARTING setUpClass building assemblies ----------------------------------------")
     libAssm = Assemblage\
               (
                 plan = Blueprint()
                         .setDigestCache(DigestCache(ShelfDigestStore()))
-                        .addElements((source_dir,build_dir,lib_dir), DirectoryComponent)
-                        .addElements(sales_original_data, FileComponent)
-                        .addElements(sales_source_file, CSVDataMunger
-                                    , elements=[sales_original_data, source_dir]
+                        .addElements((sourceDir(),buildDir(),libDir()), DirectoryComponent)
+                        .addElements(salesOriginalData(), FileComponent)
+                        .addElements(salesSrcFile(), CSVDataMunger
+                                    , elements=[salesOriginalData(), sourceDir()]
                                     , transformer=MungeSalesJan2009
                                     )
-                        .addElements(sales_object_file, CSVGroupDataCompiler
-                                    , elements=[sales_source_file, build_dir]
+                        .addElements(salesObjFile(), CSVGroupDataCompiler
+                                    , elements=[salesSrcFile(), buildDir()]
                                     )
-                        .addElements(group_data_lib_file, GroupDataArchiver
-                                    , elements=[sales_object_file, lib_dir]
+                        .addElements(groupDataLibFile(), GroupDataArchiver
+                                    , elements=[salesObjFile(), libDir()]
                                     )
                         .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
               )
@@ -739,18 +778,31 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
                 plan = Blueprint()
                         .setDigestCache(DigestCache(ShelfDigestStore()))
                         .addElements("group_data_lib_assemblage", libAssm)
-                        .addElements(group_data_lib_file, GroupDataArchiveFile
+                        .addElements(groupDataLibFile(), GroupDataArchiveFile
                                     , elements=["group_data_lib_assemblage"]
                                     )
-                        .addElements((doc_dir, build_dir),DirectoryComponent)
-                        .addElements(sales_by_country_avg_graph_src_file, FileComponent)
-                        .addElements(sales_by_country_avg_graph_obj_file, BarChartDescriptionCompiler
-                                    , elements=[sales_by_country_avg_graph_src_file, build_dir]
+                        .addElements((docDir(), buildDir()),DirectoryComponent)
+                        .addElements(salesByCountryAvgGraphSrcFile(), FileComponent)
+                        .addElements(salesByCountryAvgGraphObjFile(), BarChartDescriptionCompiler
+                                    , elements=[salesByCountryAvgGraphSrcFile(), buildDir()]
                                     )
-                        .addElements(sales_by_country_avg_graph_doc_file, BarChartDocumentLinker
-                                    , elements=[sales_by_country_avg_graph_obj_file, group_data_lib_file, doc_dir]
+                        .addElements(salesByCountryAvgGraphDocFile(), BarChartDocumentLinker
+                                    , elements=[salesByCountryAvgGraphObjFile(), groupDataLibFile(), docDir()]
                                     )
                         .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
-              ).apply('build')
+              )
+    cls.assembly = gphAssm
+    Blueprint().logger().info("ENDING setUpClass building assemblies ------------------------------------------")
+
+  def setUp(self):
+    removeDirs()
+    removeCache()
+
+  def test_full_build_from_clean(self):
+    Blueprint().logger().info("STARTING test_full_build_from_clean --------------------------------------------")
+    self.assertFalse(os.path.exists(salesByCountryAvgGraphDocFile()))
+    self.assembly.apply('build')
+    self.assertTrue(os.path.exists(salesByCountryAvgGraphDocFile()))
+    Blueprint().logger().info("ENDING test_full_build_from_clean ----------------------------------------------")
 if __name__ == '__main__':
   unittest.main()
