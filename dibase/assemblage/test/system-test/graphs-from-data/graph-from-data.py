@@ -50,6 +50,7 @@ import shelve
 import json
 import shutil
 import glob
+import time
 
 class BuildAction:
   @staticmethod
@@ -150,6 +151,7 @@ class CSVDataMunger(FileComponent):
         a master dataset CSV file with records giving the group names and
         file pathnames - with the first record giving the dataset name.
     '''
+    Blueprint().logger().info("STARTING CSVDataMunger.build_afterElementsActions ------------------------------")
     data_to_write = {}
     path = self.inputFilePath
     self.debug("Reading raw data from CSV file: '%s'" % path )
@@ -180,6 +182,7 @@ class CSVDataMunger(FileComponent):
                 for price in mbr_data['__DATA__']:
                   mbr_writer.writerow([price])
               main_writer.writerow([grp_name,mbr_name,mbr_filename])
+    Blueprint().logger().info("ENDING CSVDataMunger.build_afterElementsActions --------------------------------")
 
 class CSVGroupDataCompiler(ShelfComponent):
   def __init__(self, name, attributes, elements=[], logger=None):
@@ -204,6 +207,7 @@ class CSVGroupDataCompiler(ShelfComponent):
     Constructs a Python shelve persistent map of this data as the output
     file.
     '''
+    Blueprint().logger().info("STARTING CSVGroupDataCompiler.build_afterElementsActions -----------------------")
     data_to_write = {}
     path = self.inputFilePath
     self.debug("Processing main group data from CSV file: '%s'" % path )
@@ -244,6 +248,7 @@ class CSVGroupDataCompiler(ShelfComponent):
 #      self.debug("Data to be written to Group Data Object (gdo) file:\n%s" % str(data_to_write))
       with shelve.open(str(self)) as store:
         store[main_name] = data_to_write
+    Blueprint().logger().info("ENDING CSVGroupDataCompiler.build_afterElementsActions -------------------------")
 
 class GroupDataArchiver(Component):
   def __init__(self, name, attributes, elements=[], logger=None):
@@ -264,11 +269,13 @@ class GroupDataArchiver(Component):
     '''
     Opens and reads each shelve file-set and copies to output shelve file-set.
     '''
+    Blueprint().logger().info("STARTING GroupDataArchiver.build_afterElementsActions --------------------------")
     with shelve.open(str(self)) as output_store:
       for input_store_path in self.inputFilePaths:
         with shelve.open(input_store_path) as input_store:
           for dataset_name, dataset_map in input_store.items():
             output_store[dataset_name] = dataset_map
+    Blueprint().logger().info("ENDING GroupDataArchiver.build_afterElementsActions ----------------------------")
 
 class BarChartDescriptionCompiler(ShelfComponent):
   '''
@@ -326,6 +333,7 @@ class BarChartDescriptionCompiler(ShelfComponent):
       if attr not in map:
         raise RuntimeError(msg)
 
+    Blueprint().logger().info("STARTING BarChartDescriptionCompiler.build_afterElementsActions ----------------")
     styles = ""
     panels = {}
     path = self.inputFilePath
@@ -382,6 +390,7 @@ class BarChartDescriptionCompiler(ShelfComponent):
               }
     with shelve.open(str(self)) as store:
       store["main"] = chunks
+    Blueprint().logger().info("ENDING BarChartDescriptionCompiler.build_afterElementsActions ------------------")
 
 class BarChartDocumentLinker(Component):
   def __init__(self, name, attributes, elements=[], logger=None):
@@ -442,6 +451,7 @@ class BarChartDocumentLinker(Component):
 #      self.debug("Looking for function named '%(f)s' in local names: '%(l)s'"%{'l':locals(),'f':reducer})
       fn = locals().get(reducer)
       return fn(data) if fn else None
+    Blueprint().logger().info("STARTING BarChartDocumentLinker.build_afterElementsActions ---------------------")
     doc = ''
     unresolved = []
     libs = []
@@ -595,6 +605,8 @@ class BarChartDocumentLinker(Component):
             doc = '\n'.join([doc,'<\svg>'])
           doc = '\n'.join([doc,'<\div>'])
         doc = '\n'.join([doc,graph_store['main']['epilogue']])
+        for file in libs:
+          file.close()
       except:
         for file in libs:
           file.close()
@@ -607,6 +619,8 @@ class BarChartDocumentLinker(Component):
       else:
         with open(str(self),'w') as docFile:
           docFile.write(doc)
+    Blueprint().logger().info("ENDING BarChartDocumentLinker.build_afterElementsActions -----------------------")
+
 class DirectoryComponent(Component):
   '''
   A simple sub-type of Component that ensures directories are created if
@@ -750,11 +764,28 @@ def removeCache():
   for file in glob.glob('.'.join([cache_path_stem,'*'])):
     os.remove(file)
 
+class UpdatedPaths:
+  @staticmethod
+  def getModTime(path):
+    return os.stat(path).st_mtime
+  def __init__(self, paths=[]):
+    self.pathModTimes = {}
+    for path in paths:
+      self.pathModTimes[path] = UpdatedPaths.getModTime(path)
+  def reset(self):
+    for path in self.pathModTimes.keys():
+      self.pathModTimes[path] = UpdatedPaths.getModTime(path) 
+  def changedPaths(self):
+    changed = []
+    for path, startTime in self.pathModTimes.items():
+      if UpdatedPaths.getModTime(path) != startTime:
+        changed.append(path)
+    return changed
+
 class SystemTestGraphsFromCSVData(unittest.TestCase):
-  assembly = None
-  @classmethod
-  def setUpClass(cls):
-    Blueprint().logger().info("STARTING setUpClass building assemblies ----------------------------------------")
+  def setUpAssemblages(self):
+    logLevel = logging.DEBUG
+    Blueprint().logger().info("STARTING setUpAssemblages building assemblies --------------------------------")
     libAssm = Assemblage\
               (
                 plan = Blueprint()
@@ -771,7 +802,7 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
                         .addElements(groupDataLibFile(), GroupDataArchiver
                                     , elements=[salesObjFile(), libDir()]
                                     )
-                        .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
+                        .setLogger(Blueprint().logger().setLevel(logLevel))
               )
     gphAssm = Assemblage\
               (
@@ -789,20 +820,36 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
                         .addElements(salesByCountryAvgGraphDocFile(), BarChartDocumentLinker
                                     , elements=[salesByCountryAvgGraphObjFile(), groupDataLibFile(), docDir()]
                                     )
-                        .setLogger(Blueprint().logger().setLevel(logging.DEBUG))
+                        .setLogger(Blueprint().logger().setLevel(logLevel))
               )
-    cls.assembly = gphAssm
-    Blueprint().logger().info("ENDING setUpClass building assemblies ------------------------------------------")
+    self.assembly = gphAssm
+    self.libAssembly = libAssm
+    Blueprint().logger().info("ENDING setUpAssemblages building assemblies ----------------------------------")
 
   def setUp(self):
     removeDirs()
     removeCache()
+    self.setUpAssemblages()
 
-  def test_full_build_from_clean(self):
-    Blueprint().logger().info("STARTING test_full_build_from_clean --------------------------------------------")
+  def test_a_full_build_from_clean(self):
+    Blueprint().logger().info("STARTING test_a_full_build_from_clean ------------------------------------------")
     self.assertFalse(os.path.exists(salesByCountryAvgGraphDocFile()))
     self.assembly.apply('build')
     self.assertTrue(os.path.exists(salesByCountryAvgGraphDocFile()))
-    Blueprint().logger().info("ENDING test_full_build_from_clean ----------------------------------------------")
+    Blueprint().logger().info("ENDING test_a_full_build_from_clean --------------------------------------------")
+  def test_build_after_full_build_should_change_nothing(self):
+    Blueprint().logger().info("STARTING test_build_after_full_build_should_change_nothing ---------------------")
+    Blueprint().logger().info("-- DOING BUILD ALL -------------------------------------------------------------")
+    self.assembly.apply('build')
+    Blueprint().logger().info("-- DONE BUILD ALL  -------------------------------------------------------------")
+    self.assertTrue(os.path.exists(salesByCountryAvgGraphDocFile()))
+    ups = UpdatedPaths([sourceDir(),buildDir(),libDir(),docDir()])
+    time.sleep(1) # ensure file-system time-stamps will change
+    Blueprint().logger().info("-- DOING RE-BUILD --------------------------------------------------------------")
+    self.assembly.apply('build')
+    Blueprint().logger().info("-- DONE RE-BUILD  --------------------------------------------------------------")
+    self.assertEqual(ups.changedPaths(), [])
+    Blueprint().logger().info("ENDING test_build_after_full_build_should_change_nothing -----------------------")
+    
 if __name__ == '__main__':
   unittest.main()

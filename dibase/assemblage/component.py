@@ -341,7 +341,10 @@ class Component(ComponentBase):
     if  self.__elements.queryAnyBeforeElementsActionsDone()\
      or self.__elements.queryAnyAfterElementsActionsDone():
       result = True
-    else:
+    elif self.__elements.queryAllAfterElementsActionsDone():
+    # If after processing the __elements Compound did not have any
+    # elements with actions processed but all elements had actions
+    # processed then it implies there are NO elements to process
       result = self.hasChanged()
     return result
   def hasChanged(self):
