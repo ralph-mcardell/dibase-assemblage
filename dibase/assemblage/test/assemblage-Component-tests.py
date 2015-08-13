@@ -479,14 +479,17 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(ChangedComponent('test', testAttributes).hasChanged())
   def test_isOutOfDate_on_single_leaf_Component_returns_False(self):
     self.assertFalse(Component('test', testAttributes).isOutOfDate())
-  def test_isOutOfDate_on_single_leaf_Component_with_overridden_hasChanged_returns_hasChanged_override_result(self):
+  def test_isOutOfDate_on_single_leaf_Component_with_overridden_hasChanged_returns_hasChanged_override_result_after_action_applied(self):
     class ChangedComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
         super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         return True
-    self.assertTrue(ChangedComponent('test', testAttributes).isOutOfDate())
-  def test_isOutOfDate_on_multiple_Components_returns_True_after_apply_action_applied_to_one_or_more_elements_True(self):
+    c = ChangedComponent('test', testAttributes)
+    self.assertFalse(c.isOutOfDate())
+    c.apply('someModuleScopeAction') # action must process sub-elements
+    self.assertTrue(c.isOutOfDate())
+  def test_isOutOfDate_on_multiple_Components_returns_True_after_action_applied_to_one_or_more_elements_True(self):
     class NonLeafComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
         super().__init__(name,assm,elements,logger)
