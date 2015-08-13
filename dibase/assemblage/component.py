@@ -73,34 +73,17 @@ class Component(ComponentBase):
   def __ge__(self, other):
     return str(self) >= str(other)
 
-#  def elementAttribute(self, id, name, default=AttributeError):
-#    if (type(id) is not int) or id<0 or id>=len(self.__elements):
-#      if default is AttributeError:
-#        raise IndexError( self.__log_message( "id %(i)s is not an integer"
-#                                             " or out of range [0,%(e)d]"
-#                                              % {'i':str(id)
-#                                                , 'e':len(self.__elements)-1}
-#                                            )
-#                        )
-#      else:
-#        return default
-#    return getattr(self.__elements[id],name) if default is AttributeError\
-#            else getattr(self.__elements[id],name,default)
-
   def __log_message(self, message, frame=1):
     callerframe = inspect.getouterframes(inspect.currentframe(),3)
     return " [%(c)s.%(f)s]\n   %(m)s" % {'c':repr(self),'f':callerframe[frame][3], 'm':message}
-    
+
   def debug(self, message):
     if self.__logger.isEnabledFor(logging.DEBUG):
       self.__logger.debug(self.__log_message(message,2))
-    
+
   def error(self, message):
     if self.__logger.isEnabledFor(logging.ERROR):
       self.__logger.error(message)
-
-#  def assemblage(self):
-#    return self.__assemblage
 
   def __get_class_in_callers_scope(self, name, scope):
     def get_module_from_frame(frame):
