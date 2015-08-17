@@ -19,9 +19,13 @@ if project_root_dir not in sys.path:
 from dibase.assemblage.resolvers import ResolverFactory
 
 class TestResolver:
-  def __init__(self, actionName, args):
+  def __init__(self, actionName, **args):
     self.actionName = actionName
     self.args = args
+class TestSpecificNamedArgResolver:
+  def __init__(self, actionName, namedArg, **unused):
+    self.actionName = actionName
+    self.arg = namedArg
 
 class TestAssemblageResolverFactory(unittest.TestCase):
   def test_ResolverFactory_creates_resolver_with_no_additional_init_parameters(self):
@@ -50,6 +54,13 @@ class TestAssemblageResolverFactory(unittest.TestCase):
     self.assertIsInstance(r, TestResolver)
     self.assertEqual(r.actionName, 'action')
     self.assertEqual(r.args, {'first':'one', 'second':2, 'three':'third', 'four':4})
-
+  def test_ResolverFactory_creates_resolver_with_specific_named_init_parameter(self):
+    rf = ResolverFactory(TestSpecificNamedArgResolver, first='one', namedArg=987.65, second=2)
+    r = rf.create('action', three='third', four=4)
+    self.assertIsNotNone(r)
+    self.assertIsInstance(r, TestSpecificNamedArgResolver)
+    self.assertEqual(r.actionName, 'action')
+    self.assertEqual(r.arg, 987.65)
+ 
 if __name__ == '__main__':
   unittest.main()

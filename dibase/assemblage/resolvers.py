@@ -65,7 +65,7 @@ class ResolverFactory:
     '''
     args = self.__args.copy()
     args.update(dynamicInitArgs)
-    return self.__resolverClass(actionName, args)
+    return self.__resolverClass(actionName, **args)
 
 class ResolutionPlan:
   '''
