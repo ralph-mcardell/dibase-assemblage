@@ -22,7 +22,7 @@ def TestFn():
   pass
 
 class TestCompositeResolver:
-  def __init__(self, resolvers):
+  def __init__(self, *resolvers):
     self.resolvers = resolvers
 
 class TestResolver:

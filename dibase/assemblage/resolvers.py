@@ -24,7 +24,7 @@ class CompositeResolver:
   objects until a match is found or all resolvers have been consulted and no
   match could be located
   '''
-  def __init__(self, resolvers):
+  def __init__(self, *resolvers):
     '''
     Create a CompositeResolver for a sequence of Resolvers:
       cr = CompositeResolver([resolver1, resolver2,...])
@@ -87,4 +87,4 @@ class ResolutionPlan:
     resolvers = []
     for f in self.__factories:
       resolvers.append( f.create(actionName, **dynamicInitArgs) )
-    return self.__compositeResolverClass(resolvers)
+    return self.__compositeResolverClass(*resolvers)
