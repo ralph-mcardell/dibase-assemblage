@@ -88,3 +88,34 @@ class ResolutionPlan:
     for f in self.__factories:
       resolvers.append( f.create(actionName, **dynamicInitArgs) )
     return self.__compositeResolverClass(*resolvers)
+
+class ObjectResolver:
+  '''
+  Uses the object instance passed to the resolve method to look for an
+  instance method named according to a pattern string given during
+  initialisation, allowing substitution of the action and function names.
+  '''
+  def __init__(self, actionName, fnNamePattern="%(actionName)s_%(fnName)s", **unused):
+    '''
+    Requires an action name parameter and an optional additional fnNamePattern
+    parameter specifying the method function name producing pattern value using
+    Python string % formatting with named string format arguments actionName
+    and fnName; defaults to the pattern: "%(actionName)s_%(fnName)s" producing
+    method names of the form 'actionname_functionname'
+    '''
+    self.__actionName = actionName
+    self.__pattern = fnNamePattern
+  def resolve(self, fnName, object=None):
+    '''
+    Try to resolve the function specified by the fnName parameter as an
+    instance method of the object parameter using the action name and
+    pattern provided to the resolver's initialiser. Returns a callable wrapped
+    object.method object or None if object has no such instance method.
+    '''
+    method = None
+    if object:
+      method = getattr( object
+                      , self.__pattern%{'actionName':self.__actionName, 'fnName':fnName}
+                      , None
+                      )
+    return method
