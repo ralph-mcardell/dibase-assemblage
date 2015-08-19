@@ -22,7 +22,14 @@ if project_root_dir not in sys.path:
 from dibase.assemblage.compound import Compound
 from dibase.assemblage.interfaces import ComponentBase
 
-testAttributes = {}
+
+class SpoofResolver:
+  pass
+class SpoofResolutionPlan:
+  def create(self,actionName, **dynArgs):
+    return SpoofResolver()
+
+testAttributes = {'__resolution_plan__' : SpoofResolutionPlan()}
 
 class TestComponent(ComponentBase):
   def __init__(self):

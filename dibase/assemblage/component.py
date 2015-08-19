@@ -49,6 +49,7 @@ class Component(ComponentBase):
       self.__logger = logging.getLogger()
     self.debug("Created %s"%repr(self))
     self.reset()
+
   def __repr__(self):
     '''
     Note: representation ignores __logger attribute.
@@ -84,107 +85,10 @@ class Component(ComponentBase):
   def error(self, message):
     if self.__logger.isEnabledFor(logging.ERROR):
       self.__logger.error(message)
-
-  def __get_class_in_callers_scope(self, name, scope):
-    def get_module_from_frame(frame):
-      module_name = frame.f_globals['__name__']
-      if module_name in sys.modules:
-        module = sys.modules[module_name]
-        if inspect.ismodule(module):
-          return module
-      return None
-
-    def strmap(map, prefix='\n      '):
-      mapstr = ''.join(['{{MAP TYPE : ',str(type(map)),'}}'])
-      for k,v in map.items():
-        mapstr = ''.join([mapstr,prefix,str(k),' : ',str(v),prefix, "  (type=",str(type(v)),')'])
-      return mapstr
-
-#    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
-    if not scope:
-      return None
-    frame = scope[0]
-    flocals = frame.f_locals
-#    self.debug("FRAME  LOCALS:%s" % strmap(flocals))
-#    self.debug("FRAME GLOBALS:%s" % strmap(frame.f_globals))
-    if name in flocals.keys():
-      if inspect.isclass(flocals[name]):
-        return flocals[name]
-    if 'self' in flocals.keys(): # assume called from instance method:
-      qualified_type = type(flocals['self'])
-    elif 'cls' in flocals.keys(): # assume called from class method
-      qualified_type = flocals['cls']
-    else: # assume it is a module level function - includes class static methods
-      module = get_module_from_frame(frame)
-      if module:
-        the_class = getattr(module, name, None)
-        return the_class
-      return None
-    if inspect.isclass(qualified_type):
-#      self.debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
-      qualname = qualified_type.__qualname__
-      qualname_parts = qualname.split('.')
-#      self.debug("Qualified name parts: '%s'" % qualname_parts);
-      if qualname_parts[-1]==name:
-        return qualified_type # self value is the type we are looking for!
-      the_class = getattr(qualified_type, name, None)
-      if the_class:
-        return the_class
-      del qualname_parts[-1] # we just checked to see if name was part of the last element
-#      self.debug("Qualified name parts to be processed:'%s'" % qualname_parts);
-      obj = get_module_from_frame(frame)
-      if obj:
-#        self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
-        obj_list = [obj]
-        for part in qualname_parts:
-          if part!='<locals>':
-            obj = getattr(obj, part, None)
-            if obj:
-#              self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
-              obj_list.append(obj)
-            else:
-#              self.debug("### FAILED finding object for part '%s' ###" % part)
-              return None
-        for obj in reversed(obj_list):
-#          self.debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
-          if inspect.isclass(obj) or inspect.ismodule(obj):
-#            self.debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
-            the_class = getattr(obj, name, None)
-            if the_class:
-              return the_class
-    return None
-
-  def __get_class_qualname_in_callers_scope(self, name, scope):
-    the_class = get_class_in_callers_scope(name)
-    if the_class:
-#      self.debug("   Returning '%s'" % '.'.join([the_class.__module__,the_class.__qualname__]))
-      return '.'.join([the_class.__module__,the_class.__qualname__])
-    return None
-  
-  def __resolver(self,action, action_method_name, scope):
-      self.debug("apply('%(a)s'): Resolving function '%(f)s'"
-                         % {'a':action,'f':action_method_name})
-      self_method_name = ''.join([action,'_', action_method_name])
-      method = getattr(self, self_method_name, False)
-      if method:
-        self.debug("Found method 'self.%s'"%self_method_name)
-        return method
-      else:
-        action_class = self.__get_class_in_callers_scope(action, scope)
-        if action_class:
-          method = getattr(action_class, action_method_name, False)
-          if method:
-            self.debug("Found %(a)s.%(m)s"%{'a':action, 'm':action_method_name})
-            return lambda : method(self)
-          else:
-            self.debug("!! Method '%(c)s.%(m)s' not found !!" % {'c':action, 'm':action_method_name})         
-        else:
-          self.debug("!! class '%s' not found !!" % action)
-        return False
  
   def _applyInner(self, action, scope):
-    def resolve_and_call_function(action, action_method_name, scope):
-      func = self.__resolver(action, action_method_name, scope)
+    def resolve_and_call_function(action, action_method_name, resolver):
+      func = resolver.resolve(action_method_name, self)
       return func and func()
     def query_do_before_elements_actions(action, scope):
       return resolve_and_call_function(action, 'queryDoBeforeElementsActions', scope)
@@ -282,7 +186,9 @@ class Component(ComponentBase):
     for class methods) only the Component as a parameter.
     '''
     self.__attributes['__seen_elements__'] = []
-    self._applyInner(action, inspect.stack()[1])
+    resolver = self.__attributes['__resolution_plan__'].create(action)
+    self._applyInner(action, resolver)
+#    self._applyInner(action, inspect.stack()[1])
   def digest(self):
     '''
     Intended to be overridden.

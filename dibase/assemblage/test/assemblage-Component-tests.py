@@ -21,31 +21,33 @@ if project_root_dir not in sys.path:
   sys.path.insert(0, project_root_dir)
 from dibase.assemblage.component import Component
 from dibase.assemblage.interfaces import AssemblageBase, DigestCacheBase
+import inspect
 
-class someModuleScopeAction:
-  query_before = False
-  query_after = False
-  query_elements = False
-  before = False
-  after = False
-  @classmethod
-  def queryDoBeforeElementsActions(cls,element):
-    cls.query_before = True
+class AlwaysDoAllComponent(Component):
+  def __init__(self,name,attr,elements=[],logger=None):
+    self.query_before = False
+    self.query_after = False
+    self.query_elements = False
+    self.before = False
+    self.after = False
+    self.apply_called = False
+    super().__init__(name,attr,elements,logger)
+  def someAction_queryDoBeforeElementsActions(self):
+    self.query_before = True
     return True
-  @classmethod
-  def queryDoAfterElementsActions(cls,element):
-    cls.query_after = True
+  def someAction_queryDoAfterElementsActions(self):
+    self.query_after = True
     return True
-  @classmethod
-  def queryProcessElements(cls,element):
-    cls.query_elements = True
+  def someAction_queryProcessElements(self):
+    self.query_elements = True
     return True
-  @classmethod
-  def beforeElementsActions(cls,element):
-    cls.before = True
-  @classmethod
-  def afterElementsActions(cls,element):
-    cls.after = True
+  def someAction_beforeElementsActions(self):
+    self.before = True
+  def someAction_afterElementsActions(self):
+    self.after = True
+  def apply(self,action):
+    self.apply_called = True
+    super().apply(action)
 
 class NoActionsAction:
   pass
@@ -60,7 +62,16 @@ class SpoofDigestCache(DigestCacheBase):
   def writeBack(self):
     self.writeBackCount = self.writeBackCount + 1
 
-testAttributes = {'__logger__' : None, '__store__' : SpoofDigestCache()}
+class SpoofResolver:
+  def __init__(self, actionName, **unused):
+    self.actionname = actionName
+  def resolve(self, fnName, object=None):
+    return getattr(object, "%(a)s_%(f)s"%{'a':self.actionname, 'f':fnName}, None)
+class SpoofResolutionPlan:
+  def create(self, actionName, **dynArgs):
+    return SpoofResolver(actionName, **dynArgs)
+
+testAttributes = {'__logger__' : None, '__store__' : SpoofDigestCache(), '__resolution_plan__' : SpoofResolutionPlan()}
 
 class TestAssemblageComponent(unittest.TestCase):
 #  log_level = logging.INFO 
@@ -225,11 +236,11 @@ class TestAssemblageComponent(unittest.TestCase):
   def test_calling_apply_with_unsupported_action_causes_no_errors(self):
 #    self.show_log = True
     Component ( 'test-root'
-              , attributes = {}
+              , attributes = testAttributes
               , elements=[Component('testchild', {}, logger=self.logger)]
               , logger=self.logger
               ).apply('noSuchAction')
-  def test_apply_does_no_action_steps_methods_if_query_action_methods_return_True_for_subclass_methods(self):
+  def test_apply_does_no_action_steps_methods_if_query_action_methods_return_False_for_subclass_methods(self):
     class NeverDoAnyProcessingComponent(Component):
       def __init__(self,name,assm,elements=[],logger=None):
         self.query_before = False
@@ -256,9 +267,8 @@ class TestAssemblageComponent(unittest.TestCase):
         self.apply_called = True
         super().apply(action)
 #    self.show_log = True
-    assmattribs = {}
-    child = NeverDoAnyProcessingComponent('child', assmattribs, logger=self.logger)
-    root = NeverDoAnyProcessingComponent('root', assmattribs, elements=[child], logger=self.logger)
+    child = NeverDoAnyProcessingComponent('child', testAttributes, logger=self.logger)
+    root = NeverDoAnyProcessingComponent('root', testAttributes, elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
@@ -299,9 +309,8 @@ class TestAssemblageComponent(unittest.TestCase):
         self.apply_called = True
         super().apply(action)
 #    self.show_log = True
-    assmattribs = {}
-    child = AlwaysDoAllComponent('child', assmattribs, logger=self.logger)
-    root = AlwaysDoAllComponent('root', assmattribs, elements=[child], logger=self.logger)
+    child = AlwaysDoAllComponent('child', testAttributes, logger=self.logger)
+    root = AlwaysDoAllComponent('root', testAttributes, elements=[child], logger=self.logger)
     root.apply('someAction')
     self.assertTrue(root.apply_called)
     self.assertTrue(root.query_before)
@@ -315,136 +324,19 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertTrue(child.query_before)
     self.assertTrue(child.query_after)
     self.assertTrue(child.query_elements)
-  def test_apply_does_no_action_steps_methods_if_query_action_methods_return_False_for_action_class_methods(self):
-    class someAction:
-      query_before = False
-      query_after = False
-      query_elements = False
-      before = False
-      after = False
-      @classmethod
-      def queryDoBeforeElementsActions(cls,element):
-        cls.query_before = True
-        return False
-      @classmethod
-      def queryDoAfterElementsActions(cls,element):
-        cls.query_after = True
-        return False
-      @classmethod
-      def queryProcessElements(cls,element):
-        cls.query_elements = True
-        return False
-      @classmethod
-      def beforeElementsActions(cls,element):
-        cls.before = True
-      @classmethod
-      def afterElementsActions(cls,element):
-        cls.after = True
-#    self.show_log = True
-    assmattribs = {}
-    child = Component('child', assmattribs, logger=self.logger)
-    root = Component('root', assmattribs, elements=[child], logger=self.logger)
-    root.apply('someAction')
-    self.assertTrue(someAction.query_before)
-    self.assertTrue(someAction.query_after)
-    self.assertTrue(someAction.query_elements)
-    self.assertFalse(someAction.before)
-    self.assertFalse(someAction.after)
-  def test_apply_does_action_steps_methods_if_query_action_methods_return_True_for_action_class_methods(self):
-    class someAction:
-      query_before = False
-      query_after = False
-      query_elements = False
-      before = False
-      after = False
-      @classmethod
-      def queryDoBeforeElementsActions(cls,element):
-        cls.query_before = True
-        return True
-      @classmethod
-      def queryDoAfterElementsActions(cls,element):
-        cls.query_after = True
-        return True
-      @classmethod
-      def queryProcessElements(cls,element):
-        cls.query_elements = True
-        return True
-      @classmethod
-      def beforeElementsActions(cls,element):
-        cls.before = True
-      @classmethod
-      def afterElementsActions(cls,element):
-        cls.after = True
-#    self.show_log = True
-    assmattribs = {}
-    child = Component('child', assmattribs, logger=self.logger)
-    root = Component('root', assmattribs, elements=[child], logger=self.logger)
-    root.apply('someAction')
-    self.assertTrue(someAction.query_before)
-    self.assertTrue(someAction.query_after)
-    self.assertTrue(someAction.query_elements)
-    self.assertTrue(someAction.before)
-    self.assertTrue(someAction.after)
-  class someClassScopeAction:
-    query_before = False
-    query_after = False
-    query_elements = False
-    before = False
-    after = False
-    @classmethod
-    def queryDoBeforeElementsActions(cls,element):
-      cls.query_before = True
-      return True
-    @classmethod
-    def queryDoAfterElementsActions(cls,element):
-      cls.query_after = True
-      return True
-    @classmethod
-    def queryProcessElements(cls,element):
-      cls.query_elements = True
-      return True
-    @classmethod
-    def beforeElementsActions(cls,element):
-      cls.before = True
-    @classmethod
-    def afterElementsActions(cls,element):
-      cls.after = True
-  def test_apply_finds_action_class_defined_in_a_callers_outer_scope(self):
-#    self.show_log = True
-    assmattribs = {}
-    child = Component('child', assmattribs, logger=self.logger)
-    root = Component('root', assmattribs, elements=[child], logger=self.logger)
-    root.apply('someClassScopeAction')
-    self.assertTrue(self.someClassScopeAction.query_before)
-    self.assertTrue(self.someClassScopeAction.query_after)
-    self.assertTrue(self.someClassScopeAction.query_elements)
-    self.assertTrue(self.someClassScopeAction.before)
-    self.assertTrue(self.someClassScopeAction.after)
-  def test_apply_finds_action_class_defined_in_callers_module_scope(self):
-#    self.show_log = True
-    assmattribs = {}
-    child = Component('child', assmattribs, logger=self.logger)
-    root = Component('root', assmattribs, elements=[child], logger=self.logger)
-    root.apply('someModuleScopeAction')
-    self.assertTrue(someModuleScopeAction.query_before)
-    self.assertTrue(someModuleScopeAction.query_after)
-    self.assertTrue(someModuleScopeAction.query_elements)
-    self.assertTrue(someModuleScopeAction.before)
-    self.assertTrue(someModuleScopeAction.after)
   def test_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references(self):
   #  self.show_log = True
-    assmattribs = {}
     grandchild2_children = []
-    grandchild1 = Component('grandchild1', assmattribs, logger=self.logger)
-    child1 = Component('child1', assmattribs, elements=[grandchild1], logger=self.logger)
-    grandchild2 = Component('grandchild2', assmattribs, elements=grandchild2_children, logger=self.logger)
-    child2 = Component('child2', assmattribs, elements=[grandchild2], logger=self.logger)
-    root = Component('root', assmattribs, elements=[child1,child2], logger=self.logger)
+    grandchild1 = AlwaysDoAllComponent('grandchild1', testAttributes, logger=self.logger)
+    child1 = AlwaysDoAllComponent('child1', testAttributes, elements=[grandchild1], logger=self.logger)
+    grandchild2 = AlwaysDoAllComponent('grandchild2', testAttributes, elements=grandchild2_children, logger=self.logger)
+    child2 = AlwaysDoAllComponent('child2', testAttributes, elements=[grandchild2], logger=self.logger)
+    root = AlwaysDoAllComponent('root', testAttributes, elements=[child1,child2], logger=self.logger)
     grandchild2_children.append(root) # Ooops!
     with self.assertRaises(RuntimeError):
-      root.apply('someModuleScopeAction')
+      root.apply('someAction')
     try:
-      root.apply('someModuleScopeAction')
+      root.apply('someAction')
     except RuntimeError as e:
       print("\ntest_apply_rasies_RuntimeError_if_Component_graph_has_cirular_references\n"
             "  INFORMATION: RuntimeError raised with message:\n     '%(e)s'" % {'e':e})
@@ -480,29 +372,30 @@ class TestAssemblageComponent(unittest.TestCase):
   def test_isOutOfDate_on_single_leaf_Component_returns_False(self):
     self.assertFalse(Component('test', testAttributes).isOutOfDate())
   def test_isOutOfDate_on_single_leaf_Component_with_overridden_hasChanged_returns_hasChanged_override_result_after_action_applied(self):
-    class ChangedComponent(Component):
+    class ChangedComponent(AlwaysDoAllComponent):
       def __init__(self,name,assm,elements=[],logger=None):
         super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         return True
     c = ChangedComponent('test', testAttributes)
     self.assertFalse(c.isOutOfDate())
-    c.apply('someModuleScopeAction') # action must process sub-elements
+    c.apply('someAction') # action must process sub-elements
     self.assertTrue(c.isOutOfDate())
   def test_isOutOfDate_on_multiple_Components_returns_True_after_action_applied_to_one_or_more_elements_True(self):
-    class NonLeafComponent(Component):
+    class NonLeafComponent(AlwaysDoAllComponent):
       def __init__(self,name,assm,elements=[],logger=None):
         super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         self.fail("Component.IsOutOfDate called hasChanged on non-leaf element")
-    class LeafComponent(Component):
+    class LeafComponent(AlwaysDoAllComponent):
       changed = False
       def __init__(self,name,assm,elements=[],logger=None):
         super().__init__(name,assm,elements,logger)
       def hasChanged(self):
         self.changed = not self.changed
         return self.changed
-    c = Component ( 'test'
+    c = AlwaysDoAllComponent\
+                  ( 'test'
                   , testAttributes
                   , elements=[ NonLeafComponent('NonLeaf-1', testAttributes
                                                , elements=[LeafComponent('Leaf-11', testAttributes)]
@@ -512,7 +405,7 @@ class TestAssemblageComponent(unittest.TestCase):
                                                )
                              ]
                   )
-    c.apply('someModuleScopeAction')
+    c.apply('someAction')
     self.assertTrue(c.isOutOfDate())
   def test_isOutOfDate_on_multiple_Components_returns_False_if_no_hasChanged_on_leaf_returns_True(self):
     class NonLeafComponent(Component):
@@ -562,89 +455,58 @@ class TestAssemblageComponent(unittest.TestCase):
     self.assertFalse(c.queryBeforeElementsActionsDone())
     self.assertFalse(c.queryAfterElementsActionsDone())
   def test_apply_action_with_only_before_action_processing_queryBeforeElementsActionsDone_returns_True(self):
-    c =  Component( 'test'
-                  , testAttributes
-                  )
-    class doBeforeAction:
-      @classmethod
-      def queryDoBeforeElementsActions(cls,element):
-        return True
-      @classmethod
-      def queryDoAfterElementsActions(cls,element):
+    class DoOnlyBeforeActions(AlwaysDoAllComponent):
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
+      def someAction_queryDoAfterElementsActions(self):
         return False
-      @classmethod
-      def queryProcessElements(cls,element):
+      def someAction_queryProcessElements(self):
         return False
-      @classmethod
-      def beforeElementsActions(cls,element):
-        pass
-      @classmethod
-      def afterElementsActions(cls,element):
-        pass
-    c.apply('doBeforeAction')
+    c = DoOnlyBeforeActions('test', testAttributes)
+    c.apply('someAction')
     self.assertTrue(c.queryBeforeElementsActionsDone())
     self.assertFalse(c.queryAfterElementsActionsDone())
   def test_apply_action_with_only_after_action_processing_queryAfterElementsActionsDone_returns_True(self):
-    c =  Component( 'test'
-                  , testAttributes
-                  )
-    class doAfterAction:
-      @classmethod
-      def queryDoBeforeElementsActions(cls,element):
+    class DoOnlyAfterActions(AlwaysDoAllComponent):
+      def __init__(self,name,assm,elements=[],logger=None):
+        super().__init__(name,assm,elements,logger)
+      def someAction_queryDoBeforeElementsActions(self):
         return False
-      @classmethod
-      def queryDoAfterElementsActions(cls,element):
-        return True
-      @classmethod
-      def queryProcessElements(cls,element):
+      def someAction_queryProcessElements(self):
         return False
-      @classmethod
-      def beforeElementsActions(cls,element):
-        pass
-      @classmethod
-      def afterElementsActions(cls,element):
-        pass
-    c.apply('doAfterAction')
+    c = DoOnlyAfterActions('test', testAttributes)
+    c.apply('someAction')
     self.assertFalse(c.queryBeforeElementsActionsDone())
     self.assertTrue(c.queryAfterElementsActionsDone())
   def test_apply_action_correctly_sets_both_processing_states_on_repeated_apply_calls(self):
-    c =  Component( 'test'
-                  , testAttributes
-                  )
-    class settableDoAction:
-      doBefore = True
-      doAfter = True
-      @classmethod
-      def queryDoBeforeElementsActions(cls,element):
-        return cls.doBefore
-      @classmethod
-      def queryDoAfterElementsActions(cls,element):
-        return cls.doAfter
-      @classmethod
-      def queryProcessElements(cls,element):
+    class DoSettableActions(AlwaysDoAllComponent):
+      def __init__(self,name,assm,elements=[],logger=None):
+        self.doBefore = True
+        self.doAfter = True
+        super().__init__(name,assm,elements,logger)
+      def someAction_queryDoBeforeElementsActions(self):
+        return self.doBefore
+      def someAction_queryDoAfterElementsActions(self):
+        return self.doAfter
+      def someAction_queryProcessElements(self):
         return False
-      @classmethod
-      def beforeElementsActions(cls,element):
-        pass
-      @classmethod
-      def afterElementsActions(cls,element):
-        pass
-    c.apply('settableDoAction')
+    c = DoSettableActions('test', testAttributes)
+    c.apply('someAction')
     self.assertTrue(c.queryBeforeElementsActionsDone())
     self.assertTrue(c.queryAfterElementsActionsDone())
-    settableDoAction.doBefore = False
-    settableDoAction.doAfter = False
-    c.apply('settableDoAction')
+    c.doBefore = False
+    c.doAfter = False
+    c.apply('someAction')
     self.assertFalse(c.queryBeforeElementsActionsDone())
     self.assertFalse(c.queryAfterElementsActionsDone())
-    settableDoAction.doBefore = True
-    settableDoAction.doAfter = False
-    c.apply('settableDoAction')
+    c.doBefore = True
+    c.doAfter = False
+    c.apply('someAction')
     self.assertTrue(c.queryBeforeElementsActionsDone())
     self.assertFalse(c.queryAfterElementsActionsDone())
-    settableDoAction.doBefore = False
-    settableDoAction.doAfter = True
-    c.apply('settableDoAction')
+    c.doBefore = False
+    c.doAfter = True
+    c.apply('someAction')
     self.assertFalse(c.queryBeforeElementsActionsDone())
     self.assertTrue(c.queryAfterElementsActionsDone())
     

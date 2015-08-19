@@ -126,15 +126,15 @@ class CallFrameScopeResolver:
   in the scope of a call frame specified as the number of frame from the current
   frame of the call to CallFrameScopeResolver._init__ during object creation.
   '''
-  def __init__(self, actionName, frameNumber=2, fnNamePattern="%(fnName)s", clsNamePattern="%(actionName)s", **unused):
+  def __init__(self, actionName, frameNumber=4, fnNamePattern="%(fnName)s", clsNamePattern="%(actionName)s", **unused):
     '''
     Creates a call frame scope resolver from an action name,  a call frame
-    number from the current call, defaulting to 2 (meaning the frame of the
-    caller of the function creating a CallFrameScopeResolver object - e.g. the
-    caller of an apply(action) method), a pattern for a class or static method
-    name defaulting to the name of the function to resolve, and the name of
-    the class the method belongs to, defaulting to the actionName parameter
-    value.
+    number from the current call, defaulting to 4 (meaning the frame of the
+    caller of the function creating a CallFrameScopeResolver object via a
+    ResolverFactory and ResolutionPlan - e.g. the caller of an apply(action)
+    method), a pattern for a class or static method name defaulting to the name
+    of the function to resolve, and the name of the class the method belongs
+    to, defaulting to the actionName parameter value.
     '''
     self.__actionName = actionName
     self.__frame = inspect.stack()[frameNumber][0]

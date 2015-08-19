@@ -12,6 +12,7 @@ License: dual: GPL or BSD.
 
 from .interfaces import AssemblageBase
 from .compound import Compound
+from .resolvers import *
 import inspect
 
 class Assemblage(AssemblageBase):
@@ -55,6 +56,7 @@ class Assemblage(AssemblageBase):
     elements = plan.topLevelElements()
     if not Assemblage.isiterable(elements):
       elements = [elements]
+    self.__attributes['__resolution_plan__'] = ResolutionPlan(ResolverFactory(ObjectResolver), ResolverFactory(CallFrameScopeResolver) )
     self.__elements = Compound(self.__attributes,elements)
 
   def queryBeforeElementsActionsDone(self):
@@ -117,4 +119,6 @@ class Assemblage(AssemblageBase):
     After an action has been applied any changed resource digests are written
     back to the Assemblage's digest cache.
     '''
-    self._applyInner(action, inspect.stack()[1])
+    resolver = self.__attributes['__resolution_plan__'].create(action)
+    self._applyInner(action, resolver)
+#    self._applyInner(action, inspect.stack()[1])

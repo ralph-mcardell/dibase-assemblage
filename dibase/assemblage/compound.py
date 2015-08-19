@@ -31,6 +31,7 @@ class Compound(CompoundBase):
     self.reset()
     self.__logger = attributes['__logger__'] if '__logger__' in attributes\
                     else None
+
   def debug(self, message):
     if self.__logger and self.__logger.isEnabledFor(logging.DEBUG):
       self.__logger.debug(message)
@@ -78,7 +79,9 @@ class Compound(CompoundBase):
     called from a containing type such as a ComponentBase implementation.
     '''
     self.__attributes['__seen_elements__'] = []
-    self._applyInner(action, inspect.stack()[1])
+    resolver = self.__attributes['__resolution_plan__'].create(action)
+    self._applyInner(action, resolver)
+#    self._applyInner(action, inspect.stack()[1])
   def _applyInner(self, action, scope):
     '''
     Inner method used to apply function - not intended to be called by
