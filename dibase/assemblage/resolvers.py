@@ -119,3 +119,116 @@ class ObjectResolver:
                       , None
                       )
     return method
+
+class CallFrameScopeResolver:
+  '''
+  Resolves the name of a class class or static method. The class is searched for
+  in the scope of a call frame specified as the number of frame from the current
+  frame of the call to CallFrameScopeResolver._init__ during object creation.
+  '''
+  def __init__(self, actionName, frameNumber=2, fnNamePattern="%(fnName)s", clsNamePattern="%(actionName)s", **unused):
+    '''
+    Creates a call frame scope resolver from an action name,  a call frame
+    number from the current call, defaulting to 2 (meaning the frame of the
+    caller of the function creating a CallFrameScopeResolver object - e.g. the
+    caller of an apply(action) method), a pattern for a class or static method
+    name defaulting to the name of the function to resolve, and the name of
+    the class the method belongs to, defaulting to the actionName parameter
+    value.
+    '''
+    self.__actionName = actionName
+    self.__frame = inspect.stack()[frameNumber][0]
+    self.__fnPattern = fnNamePattern
+    self.__clsPattern = clsNamePattern
+  def __getNameInCallersScope(self, name):
+    def getModuleFromFrame(frame):
+      module_name = frame.f_globals['__name__']
+      if module_name in sys.modules:
+        module = sys.modules[module_name]
+        if inspect.ismodule(module):
+          return module
+      return None
+    def strmap(map, prefix='\n      '):
+      mapstr = ''.join(['{{MAP TYPE : ',str(type(map)),'}}'])
+      for k,v in map.items():
+        mapstr = ''.join([mapstr,prefix,str(k),' : ',str(v),prefix, "  (type=",str(type(v)),')'])
+      return mapstr
+#    self.debug("LOOKING FOR CLASS '%(n)s' IN FRAME: %(f)d" %{'n':name, 'f':start_frame})
+    if not self.__frame:
+      return None
+    flocals = self.__frame.f_locals
+#    self.debug("FRAME  LOCALS:%s" % strmap(flocals))
+#    self.debug("FRAME GLOBALS:%s" % strmap(self.__frame.f_globals))
+    if name in flocals.keys():
+      if inspect.isclass(flocals[name]):
+        return flocals[name]
+    if 'self' in flocals.keys(): # assume called from instance method:
+      qualified_type = type(flocals['self'])
+    elif 'cls' in flocals.keys(): # assume called from class method
+      qualified_type = flocals['cls']
+    else: # assume it is a module level function - includes class static methods
+      module = getModuleFromFrame(self.__frame)
+      if module:
+        the_class = getattr(module, name, None)
+        return the_class
+      return None
+    if inspect.isclass(qualified_type):
+#      self.debug("Looking for '%(n)s' in scope: '%(t)s'"% {'n':name, 't':qualified_type})
+      qualname = qualified_type.__qualname__
+      qualname_parts = qualname.split('.')
+#      self.debug("Qualified name parts: '%s'" % qualname_parts);
+      if qualname_parts[-1]==name:
+        return qualified_type # self value is the type we are looking for!
+      the_class = getattr(qualified_type, name, None)
+      if the_class:
+        return the_class
+      del qualname_parts[-1] # we just checked to see if name was part of the last element
+#      self.debug("Qualified name parts to be processed:'%s'" % qualname_parts);
+      obj = getModuleFromFrame(self.__frame)
+      if obj:
+#        self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+        obj_list = [obj]
+        for part in qualname_parts:
+          if part!='<locals>':
+            obj = getattr(obj, part, None)
+            if obj:
+#              self.debug("Adding part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+              obj_list.append(obj)
+            else:
+#              self.debug("### FAILED finding object for part '%s' ###" % part)
+              return None
+        for obj in reversed(obj_list):
+#          self.debug("Looking at part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+          if inspect.isclass(obj) or inspect.ismodule(obj):
+#            self.debug("Processing part '%(p)s' (type '%(t)s')" % { 'p':obj, 't':type(obj)})
+            the_class = getattr(obj, name, None)
+            if the_class:
+              return the_class
+    return None
+
+  def resolve(self, fnName, object=None):
+    '''
+    First tries to locate a class named according to the pattern given by the 
+    clsNamePattern initialisation parameter in the scope of the call frame
+    indicated by the frameNumber initialisation parameter. If such a class is
+    returned then a function attribute is searched for named according to the
+    pattern given by the fnNamePattern initialisation parameter, which if found
+    is wrapped in a lambda expression that calls it passing the value of the
+    object parameter. The initialisation actionName ans resolve fnName
+    parameter values are used in expanding the class and function name patterns.
+    '''
+    clsName = self.__clsPattern%{'actionName':self.__actionName, 'fnName':fnName}
+    actionClass = self.__getNameInCallersScope(clsName)
+    if actionClass:
+      mthdName = self.__fnPattern%{'actionName':self.__actionName, 'fnName':fnName}
+      method = getattr(actionClass, mthdName, None)
+      if method:
+      #  self.debug("Found %(a)s.%(m)s"%{'a':clsName, 'm':mthdName})
+        return lambda : method(object)
+      else:
+      #  self.debug("!! Method '%(c)s.%(m)s' not found !!" % {'c':clsName, 'm':mthdName})         
+        pass
+    else:
+    #  self.debug("!! class '%s' not found !!" % clsName)
+      pass
+    return None
