@@ -199,6 +199,36 @@ class CompoundBase(ApplicatorBase):
     '''
     pass
 
+class ResolverFactoryBase(metaclass=ABCMeta):
+  '''
+  ResolverFactory types create (function name) Resolver type instances.
+  '''
+  @abstractmethod
+  def create(self, actionName, **dynamicInitArgs):
+    '''
+    Creates and returns an action function (or method) Resolver type instance.
+    The actionName and dynamicInitArgs are typically passed to the resolver
+    creation initialisation. 
+    '''
+    pass
+  
+class ResolverBase(metaclass=ABCMeta):
+  '''
+  Resolver types search for a action functions or methods and if successful
+  return a callable object.
+  '''
+  @abstractmethod
+  def resolve(self, fnName, object=None):
+    '''
+    Searches for a function or method indicated by fnName. The object parameter
+    may be used as part of the search or just as a parameter that is passed to
+    a resolved function or method. Note that the returned callable object should
+    be callable with no parameters - in which case a call passing object can be
+    wrapped in a lambda function expression. In the case that no function can be
+    located the None should be returned.
+    '''
+    pass
+  
 class DigestCacheBase(metaclass=ABCMeta):
   '''
   Digest caches are intended to cache digests of elements' associated resources.

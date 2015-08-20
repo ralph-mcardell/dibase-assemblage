@@ -11,14 +11,15 @@ Copyright (c) 2015 Dibase Limited
 License: dual: GPL or BSD.
 '''
 
-from .interfaces import ComponentBase
+from .interfaces import ResolverBase
+from .interfaces import ResolverFactoryBase
 from .compound import Compound
 
 import logging
 import inspect
 import sys
 
-class CompositeResolver:
+class CompositeResolver(ResolverBase):
   '''
   A Function resolver that progresses through a list of individual resolver
   objects until a match is found or all resolvers have been consulted and no
@@ -41,7 +42,7 @@ class CompositeResolver:
         return fn
     return None
 
-class ResolverFactory:
+class ResolverFactory(ResolverFactoryBase):
   '''
   Holds a class and a set of parameters to pass to __init__ on instance
   initialisation that are fixed for the duration of the factory.
@@ -67,7 +68,7 @@ class ResolverFactory:
     args.update(dynamicInitArgs)
     return self.__resolverClass(actionName, **args)
 
-class ResolutionPlan:
+class ResolutionPlan(ResolverFactoryBase):
   '''
   Basically a ResolutionPlan is a composite ResolverFactory.
   Holds a sequence of ResolverFactory objects that produce a CompositeResolver
@@ -89,7 +90,7 @@ class ResolutionPlan:
       resolvers.append( f.create(actionName, **dynamicInitArgs) )
     return self.__compositeResolverClass(*resolvers)
 
-class ObjectResolver:
+class ObjectResolver(ResolverBase):
   '''
   Uses the object instance passed to the resolve method to look for an
   instance method named according to a pattern string given during
@@ -120,7 +121,7 @@ class ObjectResolver:
                       )
     return method
 
-class CallFrameScopeResolver:
+class CallFrameScopeResolver(ResolverBase):
   '''
   Resolves the name of a class class or static method. The class is searched for
   in the scope of a call frame specified as the number of frame from the current
