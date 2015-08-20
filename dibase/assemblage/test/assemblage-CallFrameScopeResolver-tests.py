@@ -54,7 +54,7 @@ class TestAssemblageCallFrameScopeResolver(unittest.TestCase):
     object = TestType()
     fn = rAction.resolve('no_method',object)
     self.assertIsNone(fn)
-  def test_CallFrameScopeResolver_default_patterns_module_scope_class_with_fuction_returns_method(self):
+  def test_CallFrameScopeResolver_default_patterns_module_scope_class_with_function_returns_method(self):
     rAction = CallFrameScopeResolver('TestAction', frameNumber=1)
     object = TestType()
     fn = rAction.resolve('method',object)
@@ -68,7 +68,7 @@ class TestAssemblageCallFrameScopeResolver(unittest.TestCase):
     fn()
     self.assertEqual(object2.fn, 'altMethod')
     self.assertEqual(object2.cls, '(module)TestAction')
-  def test_CallFrameScopeResolver_custom_patterns_module_scope_class_with_fuction_returns_method(self):
+  def test_CallFrameScopeResolver_custom_patterns_module_scope_class_with_function_returns_method(self):
     rAction = CallFrameScopeResolver('TestAction', frameNumber=1, fnNamePattern="custom_%(fnName)s", clsNamePattern="custom_%(actionName)s")
     object = TestType()
     fn = rAction.resolve('method',object)
@@ -82,7 +82,7 @@ class TestAssemblageCallFrameScopeResolver(unittest.TestCase):
     fn()
     self.assertEqual(object2.fn, 'custom_altMethod')
     self.assertEqual(object2.cls, '(module)custom_TestAction')
-  def test_CallFrameScopeResolver_default_patterns_local_scope_class_with_fuction_returns_method(self):
+  def test_CallFrameScopeResolver_default_patterns_local_scope_class_with_function_returns_method(self):
     class TestAction:
       @staticmethod
       def method(object):
@@ -114,7 +114,7 @@ class TestAssemblageCallFrameScopeResolver(unittest.TestCase):
     def altMethod(cls, object):
       object.cls = '(class)ClassTestAction'
       object.fn = 'altMethod'
-  def test_CallFrameScopeResolver_default_patterns_methodClass_scope_class_with_fuction_returns_method(self):
+  def test_CallFrameScopeResolver_default_patterns_methodClass_scope_class_with_function_returns_method(self):
     rAction = CallFrameScopeResolver('ClassTestAction', frameNumber=1)
     object = TestType()
     fn = rAction.resolve('method',object)
