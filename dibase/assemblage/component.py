@@ -86,20 +86,20 @@ class Component(ComponentBase):
     if self.__logger.isEnabledFor(logging.ERROR):
       self.__logger.error(message)
  
-  def _applyInner(self, action, scope):
+  def _applyInner(self, action, resolver):
     def resolve_and_call_function(action, action_method_name, resolver):
       func = resolver.resolve(action_method_name, self)
       return func and func()
-    def query_do_before_elements_actions(action, scope):
-      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', scope)
-    def query_do_after_elements_actions(action, scope):
-      return resolve_and_call_function(action, 'queryDoAfterElementsActions', scope)
-    def query_process_elements( action, scope):
-      return resolve_and_call_function(action, 'queryProcessElements', scope)
-    def do_before_elements_actions( action, scope):
-      resolve_and_call_function(action, 'beforeElementsActions', scope)
-    def do_after_elements_actions(action, scope):
-      resolve_and_call_function(action, 'afterElementsActions', scope)
+    def query_do_before_elements_actions(action, resolver):
+      return resolve_and_call_function(action, 'queryDoBeforeElementsActions', resolver)
+    def query_do_after_elements_actions(action, resolver):
+      return resolve_and_call_function(action, 'queryDoAfterElementsActions', resolver)
+    def query_process_elements( action, resolver):
+      return resolve_and_call_function(action, 'queryProcessElements', resolver)
+    def do_before_elements_actions( action, resolver):
+      resolve_and_call_function(action, 'beforeElementsActions', resolver)
+    def do_after_elements_actions(action, resolver):
+      resolve_and_call_function(action, 'afterElementsActions', resolver)
 
     self.debug("Component attributes: '%s'" % self.__attributes)
     self.reset()
@@ -111,18 +111,18 @@ class Component(ComponentBase):
                         )
     self.__attributes['__seen_elements__'].append(self)
     self.debug("apply('%s'): Querying do before actions" % action)
-    if query_do_before_elements_actions(action, scope):
+    if query_do_before_elements_actions(action, resolver):
       self.debug("Passed check, doing before actions")
-      do_before_elements_actions(action, scope)
+      do_before_elements_actions(action, resolver)
       self.__beforeDone = True
     self.debug("apply('%s'): Querying process elements" % action)
-    if query_process_elements(action, scope):
+    if query_process_elements(action, resolver):
       self.debug("Passed check, processing elements")
-      self.__elements._applyInner(action, scope)
+      self.__elements._applyInner(action, resolver)
     self.debug("apply('%s'): Querying do after actions" % action)
-    if query_do_after_elements_actions(action, scope):
+    if query_do_after_elements_actions(action, resolver):
       self.debug("Passed check, doing after actions")
-      do_after_elements_actions(action, scope)
+      do_after_elements_actions(action, resolver)
       self.__afterDone = True
     self.__attributes['__seen_elements__'].remove(self)
 
@@ -170,25 +170,13 @@ class Component(ComponentBase):
       Actions that should be performed if necessary after applying the action
       to the Component's elements.
 
-    Appropriate method functions are looked for first as instance methods of
-    the Component (defined by a Component subclass), and have the action name
-    and an underscore prefixed to the names shown above - so 
-    'queryProcessElements' for action 'doit' would have the name
-    'doit_queryProcessElements'. Such functions are not passed any parameters
-    other than the self parameter.
-
-    If no such method is located for the (action, function) pair then a class
-    having the same name as the action is searched for in the caller's scope,
-    starting with calling function local classes and moving out through any
-    (nested) class scopes to the caller's module level. If such a class is
-    found then methods of the names shown above a searched for and are expected
-    to be either class or static methods taking (other than the cls parameter
-    for class methods) only the Component as a parameter.
+    Appropriate functions or methods are resolved using a resolver created from
+    the '__resolution_plan__' attribute object (a resolvers.ResolutionPlan
+    - or compatible type - object).
     '''
     self.__attributes['__seen_elements__'] = []
     resolver = self.__attributes['__resolution_plan__'].create(action)
     self._applyInner(action, resolver)
-#    self._applyInner(action, inspect.stack()[1])
   def digest(self):
     '''
     Intended to be overridden.

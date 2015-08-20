@@ -14,6 +14,11 @@ if __name__ == '__main__':
               , ('assemblage-DigestCache-tests', 'TestAssemblageDigestCache')
               , ('assemblage-ShelfDigestStore-tests', 'TestAssemblageDigestStore')
               , ('assemblage-FileComponent-tests', 'TestAssemblageFileComponent')
+              , ('assemblage-CompositeResolver-tests', 'TestAssemblageCompositeResolver')
+              , ('assemblage-ResolverFactory-tests', 'TestAssemblageResolverFactory')
+              , ('assemblage-ResolutionPlan-tests', 'TestAssemblageResolutionPlan')
+              , ('assemblage-ObjectResolver-tests', 'TestAssemblageObjectResolver')
+              , ('assemblage-CallFrameScopeResolver-tests', 'TestAssemblageCallFrameScopeResolver')
               ]
   ldr = unittest.TestLoader()
   test_suites = []

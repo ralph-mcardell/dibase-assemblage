@@ -13,7 +13,6 @@ License: dual: GPL or BSD.
 
 from .interfaces import CompoundBase
 import logging
-import inspect
 import sys
 
 class Compound(CompoundBase):
@@ -81,8 +80,7 @@ class Compound(CompoundBase):
     self.__attributes['__seen_elements__'] = []
     resolver = self.__attributes['__resolution_plan__'].create(action)
     self._applyInner(action, resolver)
-#    self._applyInner(action, inspect.stack()[1])
-  def _applyInner(self, action, scope):
+  def _applyInner(self, action, resolver):
     '''
     Inner method used to apply function - not intended to be called by
     application code which should call apply. The _applyInner method is
@@ -97,7 +95,7 @@ class Compound(CompoundBase):
     for element in self.__elements:
       self.debug("Processing Compound element: '%s'"%element)
       if hasattr(element, '_applyInner') and callable(getattr(element, '_applyInner')):
-        element._applyInner(action, scope)
+        element._applyInner(action, resolver)
         if element.queryBeforeElementsActionsDone():
           self.__anyBefore = True
         else:

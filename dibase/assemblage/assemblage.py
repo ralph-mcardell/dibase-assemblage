@@ -13,7 +13,6 @@ License: dual: GPL or BSD.
 from .interfaces import AssemblageBase
 from .compound import Compound
 from .resolvers import *
-import inspect
 
 class Assemblage(AssemblageBase):
   '''
@@ -86,9 +85,9 @@ class Assemblage(AssemblageBase):
     '''
     return self.__attributes['__store__']
 
-  def _applyInner(self, action, scope):
+  def _applyInner(self, action, resolver):
     self.__attributes['__seen_elements__'] = []
-    self.__elements._applyInner(action, scope)
+    self.__elements._applyInner(action, resolver)
     self.digestCache().writeBack()
     if self.__elements.queryAllAfterElementsActionsDone() and not self.__elements.queryAnyAfterElementsActionsDone():
       # the only time all action after actions done but not any were done
@@ -121,4 +120,4 @@ class Assemblage(AssemblageBase):
     '''
     resolver = self.__attributes['__resolution_plan__'].create(action)
     self._applyInner(action, resolver)
-#    self._applyInner(action, inspect.stack()[1])
+

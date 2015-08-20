@@ -55,7 +55,7 @@ class TestComponent(ComponentBase):
 #    pass
   def apply(self, action):
     pass
-  def _applyInner(self, action, scope):
+  def _applyInner(self, action, resolver):
     self.beforeDone = self.doBefore
     self.afterDone = self.doAfter
 

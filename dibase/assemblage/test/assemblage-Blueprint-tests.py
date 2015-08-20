@@ -37,7 +37,7 @@ class NullDigestCache(DigestCacheBase):
   def writeBack(self):
     pass
 class NullAssemblage(AssemblageBase):
-  def _applyInner(self, action, scope):
+  def _applyInner(self, action, resolver):
     pass
   def apply(self, action):
     pass

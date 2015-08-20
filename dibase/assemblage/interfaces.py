@@ -24,15 +24,15 @@ class ApplicatorBase(metaclass=ABCMeta):
     '''
     pass
   @abstractmethod
-  def _applyInner(self, action, scope):
+  def _applyInner(self, action, resolver):
     '''
     Inner method used to apply function - not intended to be called by
     application code which should call apply. The _applyInner method is
     intended to be called on elements recursively initially from an application
     apply method call to perform the task of applying actions in the required
     manner. In addition to the outer application apply method's action string
-    parameter _applyInner is also passed a call 'scope' in the form of a stack
-    frame that can be used to resolve action methods.
+    parameter _applyInner is also passed an action function (or method) resolver
+    object that can be used to resolve action methods.
     '''
     pass
 
@@ -106,8 +106,9 @@ class AssemblagePlanBase(metaclass=ABCMeta):
   def attributes(self):
     '''
     Returns an attributes map object that is used as an assemblage's assemblage
-    scope attributes - including '__logger__', and '__store__' for the logger
-    and digestCache store.
+    scope attributes - including '__logger__', '__store__', and 
+    '__resolution_plan__' for the logger, digestCache store, and action function
+    resolver plan object used to create action function resolvers.
     '''
     pass
   @abstractmethod
