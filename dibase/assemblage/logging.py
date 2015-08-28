@@ -98,7 +98,6 @@ class Allow:
     just the value returned from passing the level to the predicate used to
     create the Allow object with
     '''
-#    print("Allow(self.__pred(%(l)d))=%(r)s"%{'l':level,'r':str(self.__pred(level))})
     return self.__pred(level)
 
 class Deny:
@@ -144,7 +143,6 @@ class PerObjectLevelFilter:
         levelList = []
         for i in self.__objLevelMap[o]:
           ti = type(i)
-      #    print("#### i is '%s'"%str(i))
           if i is None:
             pass
           elif ti is not Deny and ti is not Allow:
@@ -154,7 +152,6 @@ class PerObjectLevelFilter:
         self.__objLevelMap[o] = levelList
   def filter(self, record):
     args = record.args
-#    print("FILTER#1: args:%s"%str(args))
     if not hasattr(args, '__iter__') or type(args) is str:
       args = [args]
     level = record.level
@@ -166,7 +163,6 @@ class PerObjectLevelFilter:
       obj = args[-1] # last argument, others presumably used in message formatting
     else:
       obj = None
-#    print("FILTER#2: obj:%s in map: %s"%(str(obj),str(self.__objLevelMap)))
     if obj in self.__objLevelMap:
       levels = self.__objLevelMap[obj]
     elif type(obj) in self.__objLevelMap:
@@ -176,17 +172,12 @@ class PerObjectLevelFilter:
     else:
       levels = []
     allowed = False
-#    print("FILTER#3: ## levels:%s"%levels)
     for levelTest in levels:
       action = type(levelTest)
-    #  print("   >>>action:%s allowed:%s"%(str(action),str(allowed)))
       if action is Allow and not allowed: # allow previously denied level <query>
-    #    print("   >>>Apply Allow()(%d)"%level)
         allowed = levelTest(level)
       elif action is Deny and allowed: # deny previously allowed level <query>
-    #    print("   >>>Apply Deny()(%d)"%level)
         allowed = levelTest(level)
-#    print("FILTER#4")
     return allowed
 
 class Logger:
@@ -205,3 +196,77 @@ class Logger:
     Creates a logger for the assemblage package
     '''
     self.__logger = logging.getLogger(logger.Name())
+
+def __applyConfigFns(fnArg, callerName, *fns):
+  '''
+  Calls each function in fns passing fnArg
+  Returns fnArg
+  Raises ValueError if any fns item is not callable specifying the callerName
+  value.
+  '''
+  for fn in fns:
+    if not callable(fn):
+      raise ValueError("%s: expected callable argument, found %s" % (callerName, str(fn)))
+    fn(fnArg)
+  return fnArg
+def configureLogger(*args,logger=Logger.Name()):
+  '''
+  If the logger parameter is a string then the logger of that name is obtained
+  from logging.getLogger.
+  Applies the callables specified by the args unnamed parameter sequence to
+  the object specified by the logger - either the logger parameter value or the
+  logging.Logger named by the logger parameter value. Compatible callable
+  objects are returned by:
+    addHandler, specifyLoggedLevels
+  Returns the logger value - either the passed logger parameter value or the
+  logging.Logger obtained from a passed logger string name.
+  '''
+  if type(logger) is str:
+    logger = logging.getLogger(logger)
+  return __applyConfigFns(logger, "configLogger", *args)
+def addHandler(handler, *args):
+  '''
+  Applies the callables specified by the args unnamed parameter sequence to
+  the object specified by the handler parameter, assumed to be a Python logging
+  handler or compatible type. Compatible callable objects are returned by:
+    specifyLoggedLevels.
+  Returns a callable object that will call the addHandler method of the object
+  it is passed when called.
+  '''
+  class AddHandler:
+    def __init__(self, handler):
+      self.handler = handler
+    def __call__(self, logger):
+      return logger.addHandler(self.handler)
+  return AddHandler(__applyConfigFns(handler, "addHandler", *args))
+def specifyLoggedLevels(*args):
+  '''
+  Applies the callables specified by the args unnamed parameter sequence to an
+  initially empty dict parameter object. Compatible callable objects are
+  returned by:
+    logLevelsFor
+  Returns a callable object that will call the addFilter method of the object
+  it is passed when called, adding a PerObjectLevelFilter object constructed
+  with the final value of the dict parameter object.
+  '''
+  class AddPerObjectLevelFilter:
+    def __init__(self, filter):
+      self.filter = filter
+    def __call__(self, handler):
+      return handler.addFilter(self.filter)
+  params = {}
+  return AddPerObjectLevelFilter(PerObjectLevelFilter(__applyConfigFns(params, "specifyLevels", *args)))
+def logLevelsFor(obj, *args):
+  '''
+  Returns a callable object that will set the key with the value of the obj
+  parameter of the dict object it is passed when called to be the value of
+  the args parameter.
+  '''
+  class AddLevelSpecs:
+    def __init__(self, o, args):
+      self.obj = o
+      self.specs = args
+    def __call__(self, filterParms):
+      filterParms[self.obj] = self.specs
+      return filterParms
+  return AddLevelSpecs(obj, args)
