@@ -229,7 +229,7 @@ def addHandler(handler, *args):
   Applies the callables specified by the args unnamed parameter sequence to
   the object specified by the handler parameter, assumed to be a Python logging
   handler or compatible type. Compatible callable objects are returned by:
-    specifyLoggedLevels.
+    specifyLoggedLevels, setFormatter
   Returns a callable object that will call the addHandler method of the object
   it is passed when called.
   '''
@@ -270,3 +270,15 @@ def logLevelsFor(obj, *args):
       filterParms[self.obj] = self.specs
       return filterParms
   return AddLevelSpecs(obj, args)
+def setFormatter(formatter):
+  '''
+  Returns a callable object that will call setFormatter on the logging handler
+  object it is passed when called passing it the formatter parameter passed to
+  setFormatter.
+  '''
+  class SetFormatter:
+    def __init__(self, formatter):
+      self.formatter = formatter
+    def __call__(self, handler):
+      return handler.setFormatter(self.formatter)
+  return SetFormatter(formatter)

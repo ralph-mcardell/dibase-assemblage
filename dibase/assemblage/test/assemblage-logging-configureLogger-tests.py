@@ -22,12 +22,15 @@ from dibase.assemblage.logging import configureLogger
 from dibase.assemblage.logging import addHandler
 from dibase.assemblage.logging import specifyLoggedLevels
 from dibase.assemblage.logging import logLevelsFor
+from dibase.assemblage.logging import setFormatter
 
 class Record:
   def __init__(self, level, args=[]):
     self.level = level
     self.args = args
-
+class Formatter:
+  def __init__(self, value):
+    self.value = value
 class Handler:
   def __init__(self):
     self.formatter = None
@@ -161,6 +164,7 @@ class TestAssemblageLoggingConfiguration(unittest.TestCase):
     self.assertEqual(len(test_logger.handlers),1)
     self.assertIsInstance(test_logger.handlers[0],Handler)
     self.assertEqual(len(test_logger.handlers[0].filters),1)
+    self.assertIsNone(test_logger.handlers[0].formatter)
     self.assertFalse(test_logger.handlers[0].filters[0].filter(Record(allowedLevel-1,o)))
     self.assertTrue(test_logger.handlers[0].filters[0].filter(Record(allowedLevel,o)))
     self.assertFalse(test_logger.handlers[0].filters[0].filter(Record(allowedLevel+1,o)))
@@ -257,6 +261,24 @@ class TestAssemblageLoggingConfiguration(unittest.TestCase):
     self.assertFalse(test_logger.handlers[1].filters[0].filter(Record(allowedLevel+1,o)))
     self.assertTrue(test_logger.handlers[1].filters[0].filter(Record(2*allowedLevel,'value_of_o')))
     self.assertFalse(test_logger.handlers[1].filters[0].filter(Record(2*allowedLevel+1,'value_of_o')))
+  def test_configuring_a_logger_with_single_handler_with_specified_formatter_object(self):
+    global test_logger
+    test_logger = TestLogger()
+    expected_value = 'expected!!!'
+    fmttr = Formatter(expected_value)
+    configureLogger(
+      addHandler( Handler()
+      , setFormatter(fmttr)
+      )
+    , logger=test_logger
+    )
+    self.assertEqual(len(test_logger.handlers),1)
+    self.assertIsInstance(test_logger.handlers[0],Handler)
+    self.assertEqual(len(test_logger.handlers[0].filters),0)
+    self.assertIsNotNone(test_logger.handlers[0].formatter)
+    self.assertIsInstance(test_logger.handlers[0].formatter,Formatter)
+    self.assertEqual(test_logger.handlers[0].formatter,fmttr)
+    self.assertEqual(test_logger.handlers[0].formatter.value,expected_value)
     
 if __name__ == '__main__':
   unittest.main()
