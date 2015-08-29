@@ -22,7 +22,7 @@ from dibase.assemblage.logging import Deny
 
 class Record:
   def __init__(self, level, args=[]):
-    self.level = level
+    self.levelno = level
     self.args = args
 
 class TestAssemblageLoggingPerObjectLevelFilter(unittest.TestCase):

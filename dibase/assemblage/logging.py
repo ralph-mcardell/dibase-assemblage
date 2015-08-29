@@ -154,7 +154,7 @@ class PerObjectLevelFilter:
     args = record.args
     if not hasattr(args, '__iter__') or type(args) is str:
       args = [args]
-    level = record.level
+    level = record.levelno
     if type(args) is dict:
       obj = args['object']   
     elif len(args)==1 and type(args[0]) is dict:
@@ -179,6 +179,44 @@ class PerObjectLevelFilter:
       elif action is Deny and allowed: # deny previously allowed level <query>
         allowed = levelTest(level)
     return allowed
+
+class handler:
+  '''
+  Class used for name-space effect. Only defines static / class attributes.
+  The attributes are known pre-defined handlers that will be added to the
+  assemblage logger if and only if it has no handlers at the time it is required
+  to log messages.
+  
+    handler.stdout - set to be a logging.StreamHandler to the sys.stdout stream.
+                     Intended for use for regular 'print' style output, defaults
+                     to allowing only assemblage.logging.OUTPUT level with
+                     no formatting.
+    handler.stderr - set to be a logging.StreamHandler to the sys.stderr stream.
+                     Intended for all other logging output. Defaults to allowing
+                     logging.INFO, ERROR and CRITICAL) messages. Messages are
+                     formatted to be prefixed by the level name (e.g.
+                     'ERROR: the error message.').
+  The static method _initHandlers will attempt to initialise the handlers if
+  they do no exist (i.e. if they are None). It is usually called on module or
+  module name import so should not need to be called by user code. The
+  exception is if the unittest module has been imported, in which case should
+  the tests require that the handlers are initialised handler._initHandlers
+  can be called explicitly.
+  '''
+  stdout = None
+  stderr = None
+
+  @staticmethod
+  def _initHandlers():
+    if not handler.stdout:
+      from sys import stdout
+      handler.stdout = logging.StreamHandler(stream=stdout)
+      specifyLoggedLevels(logLevelsFor(None, Allow(lambda lvl:lvl==OUTPUT)))(handler.stdout)
+    if not handler.stderr:
+      from sys import stderr
+      handler.stderr = logging.StreamHandler(stream=stderr)
+      specifyLoggedLevels(logLevelsFor(None, Allow(lambda lvl:lvl>=logging.INFO and lvl<=logging.CRITICAL)))(handler.stderr)
+      handler.stderr.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
 
 class Logger:
   @staticmethod
@@ -223,7 +261,16 @@ def configureLogger(*args,logger=Logger.Name()):
   '''
   if type(logger) is str:
     logger = logging.getLogger(logger)
-  return __applyConfigFns(logger, "configLogger", *args)
+  return __applyConfigFns(logger, "configureLogger", *args)
+def configureObject(object,*args):
+  '''
+  Applies the callables specified by the args unnamed parameter sequence to
+  the object specified by the initial object parameter.
+  Returns the object value.
+  Note: Can be used with objects of logging handler types such as the known 
+  handlers handler.stdout and handler.stderr to modify their configuration.
+  '''
+  return __applyConfigFns(object, "configureObject", *args)
 def addHandler(handler, *args):
   '''
   Applies the callables specified by the args unnamed parameter sequence to
@@ -282,3 +329,8 @@ def setFormatter(formatter):
     def __call__(self, handler):
       return handler.setFormatter(self.formatter)
   return SetFormatter(formatter)
+
+if (not handler.stdout) or (not handler.stderr):
+  from sys import modules
+  if 'unittest' not in modules.keys():
+    handlers._initHandlers()

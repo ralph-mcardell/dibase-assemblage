@@ -26,7 +26,7 @@ from dibase.assemblage.logging import setFormatter
 
 class Record:
   def __init__(self, level, args=[]):
-    self.level = level
+    self.levelno = level
     self.args = args
 class Formatter:
   def __init__(self, value):
