@@ -19,6 +19,7 @@ if project_root_dir not in sys.path:
 from dibase.assemblage.logging import Allow
 from dibase.assemblage.logging import Deny
 from dibase.assemblage.logging import configureLogger
+from dibase.assemblage.logging import configureObject
 from dibase.assemblage.logging import addHandler
 from dibase.assemblage.logging import specifyLoggedLevels
 from dibase.assemblage.logging import logLevelsFor
@@ -279,6 +280,28 @@ class TestAssemblageLoggingConfiguration(unittest.TestCase):
     self.assertIsInstance(test_logger.handlers[0].formatter,Formatter)
     self.assertEqual(test_logger.handlers[0].formatter,fmttr)
     self.assertEqual(test_logger.handlers[0].formatter.value,expected_value)
+  def test_configuring_a_single_handler_then_logger_with_that_handler_with_specified_logged_level_for_one_object(self):
+    global test_logger
+    test_logger = TestLogger()
+    o = 'value_of_o'
+    allowedLevel = 851
+    hndlr = configureObject( Handler()
+            , specifyLoggedLevels(
+                logLevelsFor( o
+                , Allow(lambda lvl:lvl==allowedLevel)
+                )
+              )
+            )
+    configureLogger(addHandler(hndlr), logger=test_logger)
+    self.assertEqual(len(test_logger.handlers),1)
+    self.assertIsInstance(test_logger.handlers[0],Handler)
+    self.assertEqual(len(test_logger.handlers[0].filters),1)
+    self.assertIsNone(test_logger.handlers[0].formatter)
+    self.assertFalse(test_logger.handlers[0].filters[0].filter(Record(allowedLevel-1,o)))
+    self.assertTrue(test_logger.handlers[0].filters[0].filter(Record(allowedLevel,o)))
+    self.assertFalse(test_logger.handlers[0].filters[0].filter(Record(allowedLevel+1,o)))
+    self.assertTrue(test_logger.handlers[0].filters[0].filter(Record(allowedLevel,'value_of_o')))
+    self.assertFalse(test_logger.handlers[0].filters[0].filter(Record(allowedLevel+1,'value_of_o')))
     
 if __name__ == '__main__':
   unittest.main()
