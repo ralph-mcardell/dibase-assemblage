@@ -19,6 +19,10 @@ if __name__ == '__main__':
               , ('assemblage-ResolutionPlan-tests', 'TestAssemblageResolutionPlan')
               , ('assemblage-ObjectResolver-tests', 'TestAssemblageObjectResolver')
               , ('assemblage-CallFrameScopeResolver-tests', 'TestAssemblageCallFrameScopeResolver')
+              , ('assemblage-logging-Level-tests', 'TestAssemblageLoggingLevel')
+              , ('assemblage-logging-PerObjectLevelFilter-tests', 'TestAssemblageLoggingPerObjectLevelFilter')
+              , ('assemblage-logging-configureLogger-tests', 'TestAssemblageLoggingConfiguration')
+              , ('assemblage-logging-handler-tests', 'TestAssemblageLoggingKnownHandlers')
               ]
   ldr = unittest.TestLoader()
   test_suites = []
