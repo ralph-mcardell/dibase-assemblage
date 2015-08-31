@@ -783,6 +783,18 @@ class UpdatedPaths:
     return changed
 
 class SystemTestGraphsFromCSVData(unittest.TestCase):
+  @classmethod
+  def setUpClass(cls):
+    from dibase.assemblage.logging import Logger
+    from dibase.assemblage.logging import handler
+    Logger.get().removeHandler(handler.stdout)
+    Logger.get().removeHandler(handler.stderr)
+    if Logger.get().hasHandlers():
+      raise RuntimeError("ERROR: Some test left assemblage logger with handler(s) other than .logging.handler.stdout,stderr")
+    handler.stdout = None
+    handler.stderr = None
+    handler._initHandlers()
+
   def setUpAssemblages(self):
     logLevel = logging.DEBUG
     Blueprint().logger().info("STARTING setUpAssemblages building assemblies --------------------------------")
@@ -802,7 +814,7 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
                         .addElements(groupDataLibFile(), GroupDataArchiver
                                     , elements=[salesObjFile(), libDir()]
                                     )
-                        .setLogger(Blueprint().logger().setLevel(logLevel))
+                        .setLogger(Blueprint().logger().setLevel(logLevel)) # TODO: superseded
               )
     gphAssm = Assemblage\
               (
@@ -820,7 +832,7 @@ class SystemTestGraphsFromCSVData(unittest.TestCase):
                         .addElements(salesByCountryAvgGraphDocFile(), BarChartDocumentLinker
                                     , elements=[salesByCountryAvgGraphObjFile(), groupDataLibFile(), docDir()]
                                     )
-                        .setLogger(Blueprint().logger().setLevel(logLevel))
+                        .setLogger(Blueprint().logger().setLevel(logLevel)) # TODO: superseded
               )
     self.assembly = gphAssm
     self.libAssembly = libAssm

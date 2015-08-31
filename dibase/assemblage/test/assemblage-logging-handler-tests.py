@@ -64,12 +64,17 @@ class TestAssemblageLoggingKnownHandlers(unittest.TestCase):
   def test_000_known_handlers_are_initialised_as_expected_by_handler_initHandler(self):
 # *MUST* be first test as it performs required one-time initialisation under test
 #    print ("test_000_known_handlers_are_initialised_as_expected_by_handler_initHandler")
+    from dibase.assemblage.logging import Logger
     message = "this is the message"
-    self.assertIsNone(handler.stdout)
-    self.assertIsNone(handler.stderr)
+
+    Logger.get().removeHandler(handler.stdout)
+    Logger.get().removeHandler(handler.stderr)
+    self.assertFalse(Logger.get().hasHandlers())
+    handler.stdout = None
+    handler.stderr = None
+
     sstrmOut = self.sstrmOut
     sstrmErr = self.sstrmErr
-    
     old_stdout = sys.stdout
     sys.stdout = sstrmOut
     old_stderr = sys.stdout
@@ -80,8 +85,8 @@ class TestAssemblageLoggingKnownHandlers(unittest.TestCase):
 
     if len(sstrmOut.getvalue()) or len(sstrmErr.getvalue()):
       print("---------------------------------------------------------------------")
-      print("Initialisation stdout output:\n%s"%sstrmOut.getvalue())
-      print("Initialisation stderr output:\n%s"%sstrmErr.getvalue())
+      print("LOGGING HANDLER TESTS: Initialisation stdout output:\n%s"%sstrmOut.getvalue())
+      print("LOGGING HANDLER TESTS: Initialisation stderr output:\n%s"%sstrmErr.getvalue())
       print("---------------------------------------------------------------------")
     sstrmOut.truncate(0)
     sstrmOut.seek(0)
@@ -150,6 +155,5 @@ class TestAssemblageLoggingKnownHandlers(unittest.TestCase):
 
     handler.stdout.setFormatter(originalFormatter)
     handler.stdoutFormatter = originalFormatter
-
 if __name__ == '__main__':
   unittest.main()

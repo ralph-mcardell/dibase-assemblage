@@ -48,16 +48,39 @@ class NullAssemblage(AssemblageBase):
 
 class TestAssemblageBlueprint(unittest.TestCase):
   log_output = io.StringIO()
+  log_error  = io.StringIO()
   @classmethod
   def setUpClass(cls):
+    from dibase.assemblage.logging import Logger
+    from dibase.assemblage.logging import handler
+    Logger.get().removeHandler(handler.stdout)
+    Logger.get().removeHandler(handler.stderr)
+    if Logger.get().hasHandlers():
+      raise RuntimeError("ERROR: Some test left assemblage logger with handler(s) other than .logging.handler.stdout,stderr")
+    handler.stdout = None
+    handler.stderr = None
     old_stdout = sys.stdout
+    old_stderr = sys.stderr
     sys.stdout = cls.log_output
+    sys.stderr = cls.log_error
+    handler._initHandlers()
     Blueprint().logger()
     sys.stdout = old_stdout
+    sys.stderr = old_stderr
+    if len(cls.log_output.getvalue()) or len(cls.log_error.getvalue()):
+      print("---------------------------------------------------------------------")
+      print("BLUEPRINT TESTS: Initialisation stdout output:\n%s"%cls.log_output.getvalue())
+      print("BLUEPRINT TESTS: Initialisation stderr output:\n%s"%cls.log_error.getvalue())
+      print("---------------------------------------------------------------------")
+    cls.log_output.truncate(0)
+    cls.log_output.seek(0)
+    cls.log_error.truncate(0)
+    cls.log_error.seek(0)
 
   def test_default_blueprint_has_usable_default_logger(self):
     self.assertIsInstance(Blueprint().logger(), logging.Logger)
     self.assertTrue(Blueprint().logger().hasHandlers())
+    print("BLUEPRINT : Logger effective level:%s"%str(Blueprint().logger().getEffectiveLevel()))
     self.assertTrue(Blueprint().logger().isEnabledFor(logging.INFO))
   def test_logger_returns_specific_logger_if_one_set_with_setlogger(self):
     stringstream = io.StringIO()
@@ -73,22 +96,17 @@ class TestAssemblageBlueprint(unittest.TestCase):
     b.logger().debug('Oops!')
     self.assertEqual(stringstream.getvalue(),'SETLOGGERTEST: DEBUG: Oops!\n')
   def test_setting_logger_to_None_after_logger_is_set_will_reapply_default_logger_correctly_on_next_call_to_logger(self):
-    def blueprintLoggerWrapper(bp, redirected_stdout_writer):
-      old_stdout = sys.stdout
-      sys.stdout = redirected_stdout_writer
-      lger = bp.logger()
-      sys.stdout = old_stdout
-      return lger
     b = Blueprint()
     self.assertIsInstance(b.logger(), logging.Logger)
     b.setLogger(None)
-    self.assertIsInstance(blueprintLoggerWrapper(b, self.log_output), logging.Logger)
+    self.assertIsInstance(b.logger(), logging.Logger)
     b.setLogger(None)    
-    self.assertTrue(blueprintLoggerWrapper(b, self.log_output).hasHandlers())
+    self.assertTrue(b.logger().hasHandlers())
     b.setLogger(None)    
-    self.assertTrue(blueprintLoggerWrapper(b, self.log_output).isEnabledFor(logging.INFO))
-    blueprintLoggerWrapper(b, self.log_output).info("MULTIPLE DEFAULT LOGGER HANDLERS TEST")
-    self.assertEqual(self.log_output.getvalue().count('\n'), 1)
+    self.assertTrue(b.logger().isEnabledFor(logging.INFO))
+    b.logger().info("MULTIPLE DEFAULT LOGGER HANDLERS TEST")
+    self.assertEqual(self.log_output.getvalue().count('\n'), 0) # only .logging.OUTPUT level messages logged to stdout
+    self.assertEqual(self.log_error.getvalue().count('\n'), 1) # logging.INFO...CRITICAL level messages logged to stderr
   def test_setDigestCache_object_returned_by_digestCache(self):
     b = Blueprint()
     dg = NullDigestCache()

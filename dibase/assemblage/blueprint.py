@@ -12,7 +12,6 @@ License: dual: GPL or BSD.
 '''
 
 from .interfaces import AssemblagePlanBase
-import logging
 import sys
 import inspect
 
@@ -114,15 +113,14 @@ class Blueprint(AssemblagePlanBase):
     Internal method to set a default logging.Logger to use should there not
     have been one set at the time the logger method is called.
     '''
-    log = logging.getLogger("assemblage.default")
+    from .logging import Logger
+    from .logging import configureLogger
+    from .logging import addHandler
+    from .logging import handler
+    log = Logger.get()
     log.propagate = False
     if not log.hasHandlers():
-      loghdr = logging.StreamHandler(stream=sys.stdout)
-      loghdr.setLevel(logging.DEBUG)
-      formatter = logging.Formatter('%(levelname)s: %(message)s')
-      loghdr.setFormatter(formatter)
-      log.addHandler(loghdr)
-      log.setLevel(logging.INFO)
+      configureLogger( addHandler(handler.stdout), addHandler(handler.stderr) )     
     self.__attributes['__logger__'] = log
 
   def attributes(self):

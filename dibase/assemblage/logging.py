@@ -249,12 +249,22 @@ class handler:
                              )
 
 class Logger:
+  __logger_created = False
   @staticmethod
-  def Name():
+  def name():
     '''
     Returns the name of the assemblage package logging.logger
     '''
     return "assemblage"
+
+  @staticmethod
+  def get():
+    l = logging.getLogger(Logger.name())
+    if not Logger.__logger_created:
+      l.proprogate = False
+      l.setLevel(1) # smallest non-NOTSET level value
+      __logger_created = True
+    return l
     
   '''
   Assemblage specific logging class wrapped around the Python logging support
@@ -263,7 +273,7 @@ class Logger:
     '''
     Creates a logger for the assemblage package
     '''
-    self.__logger = logging.getLogger(logger.Name())
+    self.__logger = self.get()
 
 def __applyConfigFns(fnArg, callerName, *fns):
   '''
@@ -277,7 +287,7 @@ def __applyConfigFns(fnArg, callerName, *fns):
       raise ValueError("%s: expected callable argument, found %s" % (callerName, str(fn)))
     fn(fnArg)
   return fnArg
-def configureLogger(*args,logger=Logger.Name()):
+def configureLogger(*args,logger=Logger.name()):
   '''
   If the logger parameter is a string then the logger of that name is obtained
   from logging.getLogger.
