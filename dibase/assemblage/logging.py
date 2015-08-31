@@ -205,18 +205,48 @@ class handler:
   '''
   stdout = None
   stderr = None
+  stdoutFilter = None
+  stderrFilter = None
+  stdoutFormatter = None
+  stderrFormatter = None
+  
+  @staticmethod
+  def __initHandler(hdlr, strm, fltr, fltrFn, fmtr, fmtrDefault):
+    hdlr = logging.StreamHandler(stream=strm)
+    if not fltr:
+      fltrFn(hdlr)
+      fltr = fltrFn.filter
+    else:
+      hdlr.addFilter(fltr)
+    if not fmtr:
+      fmtr = fmtrDefault
+    hdlr.setFormatter(fmtr)
+    return (hdlr, fltr, hdlr)
 
   @staticmethod
   def _initHandlers():
     if not handler.stdout:
       from sys import stdout
-      handler.stdout = logging.StreamHandler(stream=stdout)
-      specifyLoggedLevels(logLevelsFor(None, Allow(lambda lvl:lvl==OUTPUT)))(handler.stdout)
+      (handler.stdout, handler.stdoutFilter, handler.stdoutFormatter) =\
+        handler.__initHandler( handler.stdout, stdout
+                             , handler.stdoutFilter,  specifyLoggedLevels(
+                                                        logLevelsFor(None
+                                                        , Allow(lambda lvl:lvl==OUTPUT)
+                                                        )
+                                                      )
+                             , handler.stdoutFormatter, logging.Formatter('%(message)s')
+                             )
     if not handler.stderr:
       from sys import stderr
-      handler.stderr = logging.StreamHandler(stream=stderr)
-      specifyLoggedLevels(logLevelsFor(None, Allow(lambda lvl:lvl>=logging.INFO and lvl<=logging.CRITICAL)))(handler.stderr)
-      handler.stderr.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+      (handler.stderr, handler.stderrFilter, handler.stderrFormatter) =\
+        handler.__initHandler( handler.stderr, stderr
+                             , handler.stderrFilter,  specifyLoggedLevels(
+                                                        logLevelsFor(None
+                                                        , Allow(lambda lvl:lvl>=logging.INFO and lvl<=logging.CRITICAL)
+                                                        )
+                                                      )
+                             , handler.stderrFormatter, logging.Formatter('%(levelname)s: %(message)s')
+                             )
 
 class Logger:
   @staticmethod
@@ -331,6 +361,7 @@ def setFormatter(formatter):
   return SetFormatter(formatter)
 
 if (not handler.stdout) or (not handler.stderr):
+# Create default known handlers+logging-level-filters+formatting
   from sys import modules
   if 'unittest' not in modules.keys():
     handlers._initHandlers()
